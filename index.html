@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IsCoolar - Gestão Escolar</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore-compat.js"></script>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body class="text-gray-800 h-screen flex bg-gray-50 select-none overflow-hidden">
+
+    <nav id="desktopSidebar" class="hidden flex-col w-64 bg-white border-r shadow-sm z-20 shrink-0">
+        <div class="p-5 flex items-center gap-2 text-2xl font-bold text-blue-600 border-b"><i class="ph ph-graduation-cap text-4xl"></i> IsCoolar</div>
+        <div id="desktopNavItems" class="flex-grow p-4 space-y-1 overflow-y-auto no-scrollbar"></div>
+        <div class="p-4 border-t"><button onclick="logout()" class="w-full flex items-center justify-center gap-2 text-red-600 hover:bg-red-50 p-2 rounded-lg transition text-sm font-bold"><i class="ph ph-sign-out text-base"></i> Sair do Sistema</button></div>
+    </nav>
+
+    <div class="flex flex-col flex-grow h-screen overflow-hidden relative">
+        <header class="bg-blue-600 md:bg-white md:border-b text-white md:text-gray-800 p-4 shadow-md md:shadow-none flex justify-between items-center shrink-0 z-10">
+            <div class="flex items-center gap-2 text-xl font-bold md:hidden"><i class="ph ph-graduation-cap text-3xl"></i> IsCoolar</div>
+            <div class="hidden md:block text-base font-bold text-gray-500 uppercase tracking-wider" id="headerPageTitle">IsCoolar Web</div>
+            <div id="userInfo" class="hidden flex items-center gap-3">
+                <div class="text-right hidden sm:block">
+                    <p id="userNameDisplay" class="text-sm font-bold leading-tight"></p>
+                    <p class="text-[10px] text-blue-200 md:text-gray-500 uppercase tracking-wide font-medium"><span id="userRoleDisplay"></span> • <span id="userSchoolDisplay"></span></p>
+                </div>
+                <button onclick="openProfileModal()" class="border-2 border-white md:border-blue-500 rounded-full hover:scale-105 transition shadow-sm"><img id="userAvatarDisplay" src="" class="w-10 h-10 rounded-full object-cover bg-gray-200"></button>
+                <button onclick="logout()" class="md:hidden bg-blue-700 p-2 rounded-full transition"><i class="ph ph-sign-out block"></i></button>
+            </div>
+        </header>
+
+        <main class="flex-grow overflow-y-auto p-4 pb-24 md:pb-6 no-scrollbar flex flex-col items-center justify-start">
+            
+            <div id="loginScreen" class="bg-white p-8 rounded-3xl shadow-xl w-full max-w-md mx-auto fade-in mt-10 md:mt-20 border">
+                <div class="flex justify-center mb-4"><i class="ph ph-graduation-cap text-6xl text-blue-600"></i></div>
+                <h2 class="text-2xl font-black text-center mb-1 text-gray-800">Acesso ao IsCoolar</h2>
+                <p class="text-center text-gray-500 mb-8 text-sm">Insira suas credenciais para continuar</p>
+                <form onsubmit="handleLogin(event)" class="space-y-4">
+                    <div><label class="block text-xs font-bold text-gray-400 uppercase mb-1">E-mail</label><input type="email" id="loginEmail" required class="w-full p-3 bg-gray-50 border rounded-xl outline-none focus:border-blue-500" value="administrador@iscoolar.com"></div>
+                    <div><label class="block text-xs font-bold text-gray-400 uppercase mb-1">Senha</label><input type="password" id="loginPassword" required class="w-full p-3 bg-gray-50 border rounded-xl outline-none focus:border-blue-500" value="123"></div>
+                    <button type="submit" id="btnLoginSubmit" class="w-full bg-blue-600 hover:bg-blue-700 text-white p-3 rounded-xl font-bold shadow-md transition">Entrar no Sistema</button>
+                </form>
+                <div id="dbStatus" class="mt-6 p-3 bg-gray-50 rounded-xl border text-xs text-gray-500 text-center flex items-center justify-center gap-2"><span class="loader border-gray-400 border-t-blue-500 w-4 h-4"></span> Conectando banco de dados...</div>
+            </div>
+
+            <div id="appContainer" class="hidden w-full max-w-5xl mx-auto flex flex-col space-y-5 fade-in h-full">
+                
+                <div id="tab-home" class="view-panel flex flex-col space-y-4">
+                    <div class="grid grid-cols-3 gap-3">
+                        <div class="bg-white p-5 rounded-2xl border shadow-sm flex flex-col items-center"><i class="ph ph-student text-3xl text-blue-500 mb-1"></i><p id="statStudents" class="text-2xl font-black">0</p><p class="text-[10px] text-gray-400 font-bold uppercase">Alunos</p></div>
+                        <div class="bg-white p-5 rounded-2xl border shadow-sm flex flex-col items-center"><i class="ph ph-chalkboard-teacher text-3xl text-emerald-500 mb-1"></i><p id="statTeachers" class="text-2xl font-black">0</p><p class="text-[10px] text-gray-400 font-bold uppercase">Equipe</p></div>
+                        <div class="bg-white p-5 rounded-2xl border shadow-sm flex flex-col items-center"><i class="ph ph-calendar text-3xl text-purple-500 mb-1"></i><p id="statEvents" class="text-2xl font-black">0</p><p class="text-[10px] text-gray-400 font-bold uppercase">Eventos</p></div>
+                    </div>
+                </div>
+
+                <div id="tab-management" class="view-panel hidden flex flex-col space-y-3">
+                    <div id="adminGlobalSchoolSelector" class="hidden bg-blue-100 p-3 rounded-xl border border-blue-200 flex flex-col sm:flex-row items-start sm:items-center gap-3 w-full">
+                        <label class="text-xs font-black text-blue-800 uppercase tracking-wide whitespace-nowrap"><i class="ph ph-shield-star text-base align-middle"></i> Contexto do Administrador:</label>
+                        <select id="globalAdminSchoolSelect" onchange="changeAdminSchoolContext()" class="flex-grow w-full p-2.5 border border-blue-300 rounded-lg bg-white text-xs outline-none font-bold text-gray-700 shadow-sm"><option value="">Selecione uma Escola para gerenciar os dados...</option></select>
+                    </div>
+
+                    <div class="bg-gray-200 p-1.5 rounded-xl flex text-xs font-bold text-gray-600 shadow-inner overflow-x-auto no-scrollbar">
+                        <button onclick="switchAdminTab('schools')" id="adminTabBtn-schools" class="hidden flex-grow py-2 px-4 rounded-lg bg-white shadow-sm whitespace-nowrap text-blue-600">Escolas & Diretores</button>
+                        <button onclick="switchAdminTab('students')" id="adminTabBtn-students" class="flex-grow py-2 px-4 rounded-lg bg-white shadow-sm whitespace-nowrap">Alunos</button>
+                        <button onclick="switchAdminTab('staff')" id="adminTabBtn-staff" class="flex-grow py-2 px-4 rounded-lg whitespace-nowrap">Equipe</button>
+                        <button onclick="switchAdminTab('classes')" id="adminTabBtn-classes" class="flex-grow py-2 px-4 rounded-lg whitespace-nowrap">Turmas</button>
+                        <button onclick="switchAdminTab('subjects')" id="adminTabBtn-subjects" class="flex-grow py-2 px-4 rounded-lg whitespace-nowrap">Matérias</button>
+                        <button onclick="switchAdminTab('system')" id="adminTabBtn-system" class="flex-grow py-2 px-4 rounded-lg text-amber-700 whitespace-nowrap"><i class="ph ph-gear"></i> Sistema</button>
+                    </div>
+                    
+                    <div class="flex-grow bg-white p-4 rounded-2xl border shadow-sm">
+                        <div id="adminView-schools" class="admin-subview hidden flex flex-col space-y-3">
+                            <form onsubmit="adminSaveSchool(event)" class="bg-blue-50/50 p-4 rounded-xl border border-blue-100 space-y-3">
+                                <h4 class="text-xs font-bold text-blue-800 uppercase tracking-wide border-b border-blue-200 pb-1">Dados da Instituição</h4>
+                                <div class="grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs">
+                                    <div><label class="block font-bold text-blue-800 mb-1">ID Único</label><input type="text" id="newSchoolId" required class="w-full p-2 border rounded-md"></div>
+                                    <div class="sm:col-span-2"><label class="block font-bold text-blue-800 mb-1">Nome da Escola</label><input type="text" id="newSchoolName" required class="w-full p-2 border rounded-md"></div>
+                                    <div class="sm:col-span-3"><label class="block font-bold text-blue-800 mb-1">Telefone / Contato</label><input type="text" id="newSchoolPhone" required class="w-full p-2 border rounded-md"></div>
+                                </div>
+                                <h4 class="text-xs font-bold text-blue-800 uppercase tracking-wide border-b border-blue-200 pb-1 mt-2">Endereço Completo</h4>
+                                <div class="grid grid-cols-1 sm:grid-cols-6 gap-2 text-xs">
+                                    <div class="sm:col-span-2"><label class="block font-bold text-blue-800 mb-1">CEP</label><input type="text" id="newSchoolCEP" required class="w-full p-2 border rounded-md"></div>
+                                    <div class="sm:col-span-4"><label class="block font-bold text-blue-800 mb-1">Logradouro</label><input type="text" id="newSchoolLogradouro" required class="w-full p-2 border rounded-md"></div>
+                                    <div class="sm:col-span-1"><label class="block font-bold text-blue-800 mb-1">Número</label><input type="text" id="newSchoolNumero" required class="w-full p-2 border rounded-md"></div>
+                                    <div class="sm:col-span-2"><label class="block font-bold text-blue-800 mb-1">Bairro</label><input type="text" id="newSchoolBairro" required class="w-full p-2 border rounded-md"></div>
+                                    <div class="sm:col-span-2"><label class="block font-bold text-blue-800 mb-1">Cidade</label><input type="text" id="newSchoolCidade" required class="w-full p-2 border rounded-md"></div>
+                                    <div class="sm:col-span-1"><label class="block font-bold text-blue-800 mb-1">Estado</label><select id="newSchoolEstado" required class="w-full p-2 border rounded-md bg-white"><option value="" disabled selected>UF</option><option value="AC">AC</option> <option value="AL">AL</option> <option value="AP">AP</option><option value="AM">AM</option> <option value="BA">BA</option> <option value="CE">CE</option><option value="DF">DF</option> <option value="ES">ES</option> <option value="GO">GO</option><option value="MA">MA</option> <option value="MT">MT</option> <option value="MS">MS</option><option value="MG">MG</option> <option value="PA">PA</option> <option value="PB">PB</option><option value="PR">PR</option> <option value="PE">PE</option> <option value="PI">PI</option><option value="RJ">RJ</option> <option value="RN">RN</option> <option value="RS">RS</option><option value="RO">RO</option> <option value="RR">RR</option> <option value="SC">SC</option><option value="SP">SP</option> <option value="SE">SE</option> <option value="TO">TO</option></select></div>
+                                </div>
+                                <h4 class="text-xs font-bold text-blue-800 uppercase tracking-wide border-b border-blue-200 pb-1 mt-2">Conta da Direção</h4>
+                                <div class="grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs">
+                                    <input type="text" id="newDirName" required placeholder="Nome do Diretor" class="p-2 border rounded-md">
+                                    <input type="email" id="newDirEmail" required placeholder="E-mail (Login)" class="p-2 border rounded-md">
+                                    <input type="text" id="newDirPass" required placeholder="Senha" class="p-2 border rounded-md" value="123">
+                                </div>
+                                <div class="flex gap-2 pt-2"><button type="submit" id="btnSaveSchool" class="bg-blue-600 text-white px-6 py-2 rounded-md font-bold">Cadastrar Instituição</button><button type="button" onclick="cancelSchoolEdit()" id="btnCancelSchool" class="hidden bg-gray-300 px-4 rounded-md font-bold text-gray-700">Cancelar</button></div>
+                            </form>
+                            <ul id="settingsSchoolsList" class="text-xs divide-y border rounded-lg bg-white"></ul>
+                        </div>
+
+                        <div id="adminView-students" class="admin-subview flex flex-col space-y-3">
+                            <form onsubmit="directorSaveStudent(event)" class="bg-blue-50/50 p-4 rounded-xl border border-blue-100 space-y-3">
+                                <h4 class="text-xs font-bold text-blue-800 uppercase tracking-wide border-b border-blue-200 pb-1">Dados do Aluno</h4>
+                                <div class="grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs">
+                                    <input type="text" id="newStudentId" required placeholder="RA / Matrícula" class="p-2 border rounded-md">
+                                    <input type="text" id="newStudentName" required placeholder="Nome do Aluno" class="p-2 border rounded-md">
+                                    <select id="newStudentClass" required class="p-2 border rounded-md bg-white"></select>
+                                </div>
+                                <h4 class="text-xs font-bold text-blue-800 uppercase tracking-wide border-b border-blue-200 pb-1 mt-2">Dados dos Responsáveis (Login gerado: 123)</h4>
+                                <div class="grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs">
+                                    <input type="email" id="newResp1Email" required placeholder="E-mail do Responsável 1" class="p-2 border rounded-md">
+                                    <input type="text" id="newResp1Rel" required placeholder="Parentesco (Ex: Mãe)" class="p-2 border rounded-md">
+                                    <input type="text" id="newResp1Name" required placeholder="Nome do Responsável 1" class="p-2 border rounded-md">
+                                </div>
+                                <div class="flex gap-2 pt-2"><button type="submit" id="btnSaveStudent" class="bg-blue-600 text-white px-6 py-2 rounded-md font-bold">Matricular Aluno</button><button type="button" onclick="cancelStudentEdit()" id="btnCancelStudent" class="hidden bg-gray-300 px-4 rounded-md font-bold text-gray-700">Cancelar</button></div>
+                            </form>
+                            <ul id="settingsStudentsList" class="text-xs divide-y border rounded-lg bg-white"></ul>
+                        </div>
+                        
+                        <div id="adminView-staff" class="admin-subview hidden flex flex-col space-y-3">
+                            <form onsubmit="directorAddStaff(event)" class="grid grid-cols-1 sm:grid-cols-5 gap-2 text-xs bg-emerald-50/50 p-4 rounded-xl border border-emerald-100 items-start">
+                                <div id="adminSchoolSelectBox" class="hidden sm:col-span-5"><label class="block font-bold text-emerald-800 mb-1">Vincular a qual Escola?</label><select id="newStaffSchool" class="w-full p-2 border rounded-md bg-white outline-none"></select></div>
+                                <div class="col-span-1"><label class="block font-bold text-emerald-800 mb-1">Cargo</label><select id="newStaffRole" required class="w-full p-2 border rounded-md bg-white outline-none"><option value="coordinator">Coordenador</option><option value="teacher">Professor</option></select></div>
+                                <div class="col-span-2"><label class="block font-bold text-emerald-800 mb-1">Nome Completo</label><input type="text" id="newStaffName" required class="w-full p-2 border rounded-md"></div>
+                                <div class="col-span-2"><label class="block font-bold text-emerald-800 mb-1">E-mail (Login)</label><input type="email" id="newStaffEmail" required class="w-full p-2 border rounded-md"></div>
+                                <div class="sm:col-span-5">
+                                    <label class="block font-bold text-emerald-800 mb-1">Turmas Atribuídas (Opcional - Selecione várias se necessário)</label>
+                                    <div id="newStaffClassContainer" class="w-full p-2 border rounded-md bg-white border-emerald-200 max-h-24 overflow-y-auto flex flex-col gap-1"></div>
+                                </div>
+                                <div class="sm:col-span-5 flex gap-2 mt-2"><button type="submit" id="btnSaveStaff" class="bg-emerald-600 text-white px-6 py-2 rounded-md font-bold">Contratar Funcionário</button><button type="button" onclick="cancelStaffEdit()" id="btnCancelStaff" class="hidden bg-gray-300 px-4 rounded-md font-bold text-gray-700">Cancelar</button></div>
+                            </form>
+                            <ul id="settingsStaffList" class="text-xs divide-y border rounded-lg bg-white"></ul>
+                        </div>
+                        
+                        <div id="adminView-classes" class="admin-subview hidden flex flex-col space-y-3">
+                            <form onsubmit="directorAddClass(event)" class="flex gap-2 text-xs bg-amber-50 p-4 rounded-xl border border-amber-100 items-end">
+                                <div><label class="block font-bold text-amber-800 mb-1">Série (Ex: 1º)</label><input type="text" id="newClassSerie" required class="w-full p-2 border rounded-md uppercase"></div>
+                                <div><label class="block font-bold text-amber-800 mb-1">Turma (Ex: A)</label><input type="text" id="newClassTurma" required class="w-full p-2 border rounded-md uppercase"></div>
+                                <div class="flex gap-2"><button type="submit" id="btnSaveClass" class="bg-amber-600 text-white font-bold px-6 py-2 rounded-md h-[34px]">Criar Turma</button><button type="button" onclick="cancelClassEdit()" id="btnCancelClass" class="hidden bg-gray-300 px-4 rounded-md font-bold text-gray-700 h-[34px]">Cancelar</button></div>
+                            </form>
+                            <ul id="settingsClassesList" class="text-xs divide-y border rounded-lg bg-white"></ul>
+                        </div>
+
+                        <div id="adminView-subjects" class="admin-subview hidden flex flex-col space-y-3">
+                            <div id="adminGlobalSubjectsBlock" class="hidden flex-col space-y-3">
+                                <form onsubmit="adminAddGlobalSubject(event)" class="flex gap-2 text-xs bg-purple-50 p-4 rounded-xl border border-purple-100 items-end">
+                                    <div class="flex-grow"><label class="block font-bold text-purple-800 mb-1">Adicionar Nova Disciplina Global</label><input type="text" id="newGlobalSubjectName" required class="w-full p-2 border rounded-md" placeholder="Ex: Informática"></div>
+                                    <div class="flex gap-2"><button type="submit" id="btnSaveGlobalSubject" class="bg-purple-600 hover:bg-purple-700 text-white font-bold px-6 py-2 rounded-md h-[34px] transition">Salvar</button><button type="button" onclick="cancelGlobalSubjectEdit()" id="btnCancelGlobalSubject" class="hidden bg-gray-300 px-4 rounded-md font-bold text-gray-700 h-[34px]">Cancelar</button></div>
+                                </form>
+                                <h4 class="text-xs font-bold uppercase text-gray-500 mb-1">Disciplinas Disponíveis no Sistema</h4>
+                                <ul id="globalSubjectsList" class="text-xs divide-y border rounded-lg bg-white"></ul>
+                            </div>
+                            <div id="schoolSubjectsBlock" class="bg-purple-50 p-4 rounded-xl border border-purple-100 hidden">
+                                <p class="text-xs font-bold text-purple-800 mb-3">Selecione as disciplinas ativas nesta instituição:</p>
+                                <form onsubmit="directorSaveSubjects(event)" class="space-y-4">
+                                    <div id="subjectsCheckboxContainer" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2"></div>
+                                    <button type="submit" class="bg-purple-600 hover:bg-purple-700 text-white font-bold px-6 py-2 rounded-md text-xs shadow-sm transition">Salvar Grade Curricular</button>
+                                </form>
+                            </div>
+                        </div>
+
+                        <div id="adminView-system" class="admin-subview hidden">
+                            <div class="bg-amber-50/50 p-6 rounded-xl border border-amber-200 max-w-sm text-center mx-auto mt-4">
+                                <h4 class="font-black text-amber-800 text-lg mb-2"><i class="ph ph-gear text-2xl align-middle"></i> Sistema de Avaliação</h4>
+                                <p class="text-xs text-amber-700 mb-4">Escolha a periodicidade padrão dos boletins desta instituição.</p>
+                                <select id="globalGradingSystem" onchange="updateGradingSystem()" class="w-full p-3 border rounded-xl bg-white font-bold text-gray-700 outline-none shadow-sm text-center appearance-none">
+                                    <option value="Bimestral">Bimestral</option>
+                                    <option value="Trimestral">Trimestral</option>
+                                    <option value="Semestral">Semestral</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="tab-grades" class="view-panel hidden flex flex-col space-y-4 h-[550px]">
+                    <div class="bg-white p-4 rounded-xl border shadow-sm flex justify-between items-center shrink-0">
+                        <h3 class="font-bold text-blue-800 uppercase tracking-wide"><i class="ph ph-file-text text-lg align-middle"></i> Central de Notas</h3>
+                        <span id="lblGradingSystem" class="text-xs bg-blue-100 text-blue-800 px-3 py-1 rounded-lg font-bold">Bimestral</span>
+                    </div>
+                    <div class="flex flex-col md:flex-row gap-4 flex-grow overflow-hidden">
+                        <div class="md:w-1/3 flex flex-col bg-white rounded-xl border shadow-sm overflow-hidden shrink-0 h-64 md:h-full">
+                            <div class="p-3 border-b bg-gray-50" id="gradesFilterContainer"><select id="gradesClassSelect" onchange="loadStudentsForGrades()" class="w-full p-2 border border-gray-200 rounded-md text-xs font-bold outline-none text-gray-700 bg-white"></select></div>
+                            <ul id="gradesStudentList" class="flex-grow overflow-y-auto text-sm divide-y no-scrollbar"></ul>
+                        </div>
+                        <div class="md:w-2/3 flex flex-col bg-white rounded-xl border shadow-sm overflow-hidden h-96 md:h-full">
+                            <div id="gradeFormContainer" class="p-4 border-b bg-gray-50 hidden shrink-0">
+                                <h4 class="text-xs font-bold text-blue-600 mb-2 uppercase tracking-wide">Lançar Nota: <span id="lblSelectedStudentName" class="text-gray-800"></span></h4>
+                                
+                                <form id="gradeForm" onsubmit="addGrade(event)" class="flex flex-col sm:flex-row gap-2 text-xs">
+                                    <select id="gradeSubjectSelect" required class="flex-grow p-2 border rounded-md outline-none bg-white"></select>
+                                    <select id="gradePeriodSelect" required class="p-2 border rounded-md outline-none bg-white"></select>
+                                    <div class="flex gap-2">
+                                        <input type="number" id="gradeInput" required step="0.1" min="0" max="10" placeholder="Nota" class="w-20 p-2 border rounded-md text-center font-bold outline-none">
+                                        <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white px-5 rounded-md font-bold transition">Salvar</button>
+                                    </div>
+                                </form>
+                                
+                            </div>
+                            <div class="p-4 bg-white border-b flex justify-between items-center shrink-0">
+                                <h4 class="font-bold text-gray-700 text-sm">Boletim Eletrônico</h4>
+                                <span id="selectedStudentClassLbl" class="text-[10px] text-blue-600 bg-blue-50 px-2 py-0.5 rounded border border-blue-100 font-bold uppercase hidden"></span>
+                            </div>
+                            <div class="flex-grow overflow-y-auto p-4 bg-gray-50/50 relative">
+                                <div id="noStudentSelectedMsg" class="absolute inset-0 flex items-center justify-center text-gray-400 text-xs font-medium">Selecione um aluno na lista ao lado.</div>
+                                <table id="gradesTableContainer" class="w-full text-left hidden">
+                                    <thead><tr class="text-gray-400 border-b pb-1 text-[10px] uppercase"><th class="py-2">Matéria</th><th class="py-2">Período</th><th class="py-2 text-right">Nota</th></tr></thead>
+                                    <tbody id="gradesTable" class="divide-y text-xs"></tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="tab-attendance" class="view-panel hidden flex flex-col space-y-4">
+                    <div id="attendanceFormContainer" class="bg-white p-4 rounded-2xl border shadow-sm">
+                        <h3 class="text-xs font-bold text-indigo-600 uppercase mb-3"><i class="ph ph-hand-raising"></i> Realizar Chamada Diária</h3>
+                        <div class="flex gap-2 text-xs mb-3"><input type="date" id="attendanceDate" class="p-2 border rounded-lg bg-gray-50 outline-none font-bold text-gray-600" required><button onclick="loadAttendanceClass()" class="bg-indigo-600 text-white px-4 rounded-lg font-bold">Carregar Turma</button></div>
+                        <div id="attendanceListForm" class="hidden space-y-2 max-h-64 overflow-y-auto border p-2 rounded-lg bg-gray-50/50"></div>
+                    </div>
+                    <div class="bg-white rounded-2xl border flex-grow p-4 shadow-sm flex flex-col"><h3 class="text-xs font-bold uppercase text-gray-500 tracking-wider border-b pb-2 mb-2">Relatório de Faltas</h3><ul id="attendanceReportList" class="text-xs space-y-2 overflow-y-auto flex-grow"></ul></div>
+                </div>
+
+                <div id="tab-events" class="view-panel hidden flex flex-col space-y-4">
+                    <div id="eventFormContainer" class="bg-white p-4 rounded-2xl border shadow-sm">
+                        <h3 id="eventFormTitle" class="text-xs font-bold text-emerald-600 uppercase mb-2"><i class="ph ph-calendar-plus"></i> Agendar Evento</h3>
+                        <form id="eventForm" onsubmit="handleEventSubmit(event)" class="space-y-2 text-xs">
+                            <div class="grid grid-cols-1 sm:grid-cols-3 gap-2"><input type="text" id="eventTitleInput" required placeholder="Título" class="p-2 border rounded-md"><input type="date" id="eventDateInput" required class="p-2 border rounded-md"><input type="time" id="eventTimeInput" required class="p-2 border rounded-md"></div>
+                            <div class="flex gap-2"><input type="text" id="eventDescInput" placeholder="Descrição rápida..." class="flex-grow p-2 border rounded-md"><button type="submit" id="submitEventBtn" class="bg-emerald-600 text-white px-6 rounded-md font-bold">Salvar</button><button type="button" id="cancelEventBtn" onclick="cancelEventEdit()" class="hidden bg-gray-300 px-3 rounded-md">X</button></div>
+                        </form>
+                    </div>
+                    <div class="bg-white rounded-2xl border flex-grow p-4 shadow-sm flex flex-col"><h3 class="text-xs font-bold uppercase text-gray-500 tracking-wider border-b pb-2 mb-2">Agenda Escolar</h3><div id="eventsList" class="space-y-2 overflow-y-auto flex-grow"></div></div>
+                </div>
+
+                <div id="tab-messages" class="view-panel hidden bg-white rounded-2xl border flex flex-col overflow-hidden h-full min-h-[500px] shadow-sm">
+                    <div class="bg-purple-50 border-b p-3 flex justify-between items-center"><span class="text-xs font-bold text-purple-800 uppercase tracking-wide"><i class="ph ph-chat-circle-text text-base align-middle"></i> Mural de Comunicação</span><select id="chatFilter" onchange="loadMessages()" class="text-xs p-1 rounded border outline-none bg-white"><option value="all">Todas as Mensagens</option></select></div>
+                    <div id="chatMessagesBox" class="flex-grow overflow-y-auto p-4 space-y-3 bg-gray-50"></div>
+                    <div class="p-3 border-t bg-white shrink-0">
+                        <form onsubmit="sendMessage(event)" class="space-y-2">
+                            <div class="flex gap-2"><input type="text" id="chatMessageInput" placeholder="Escreva sua mensagem..." class="flex-grow p-3 border rounded-xl text-xs outline-none bg-gray-50 focus:border-purple-500"><button type="submit" class="bg-purple-600 text-white px-5 rounded-xl transition hover:bg-purple-700 shadow-sm"><i class="ph ph-paper-plane-right text-lg"></i></button></div>
+                            <div class="flex items-center text-[10px] text-gray-500 font-bold uppercase tracking-wide"><label class="flex items-center gap-1 cursor-pointer hover:text-purple-600 transition bg-gray-100 py-1.5 px-3 rounded-lg border border-gray-200"><i class="ph ph-paperclip text-sm"></i><span id="fileNameDisplay">Anexar Arquivo</span><input type="file" id="chatFileInput" accept=".pdf,.doc,.docx,.xls,.xlsx,.csv,.jpg,.jpeg,.png" onchange="handleFileSelection()" class="hidden"></label><button type="button" id="clearFileBtn" onclick="clearFileSelection()" class="hidden ml-3 text-red-500 hover:bg-red-50 py-1 px-2 rounded transition">Remover</button></div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <nav id="mobileBottomNav" class="hidden md:hidden bottom-nav"></nav>
+
+    <div id="profileModal" class="hidden fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 p-4">
+        <div class="bg-white rounded-3xl shadow-2xl w-full max-w-sm overflow-hidden fade-in relative">
+            <div class="h-24 bg-gradient-to-r from-blue-500 to-purple-500 relative z-0">
+                <button onclick="closeProfileModal()" class="absolute top-3 right-3 text-white bg-black/20 hover:bg-black/40 rounded-full p-1 transition z-10"><i class="ph ph-x text-lg"></i></button>
+            </div>
+            <div class="px-6 pb-6 text-center relative z-10">
+                <div class="flex justify-center -mt-12 mb-3 relative z-20">
+                    <img id="modalAvatarView" src="" class="w-24 h-24 rounded-full border-4 border-white object-cover bg-gray-100 shadow-md">
+                </div>
+                
+                <div id="profileViewMode">
+                    <h3 id="modalNameView" class="text-lg font-bold text-gray-800"></h3>
+                    <p id="modalEmailView" class="text-xs text-gray-400 mb-2"></p>
+                    <button onclick="toggleProfileEdit()" class="w-full bg-gray-100 hover:bg-gray-200 text-gray-800 py-2 rounded-xl text-xs font-bold transition">Editar Meu Perfil</button>
+                </div>
+                
+                <div id="profileEditMode" class="hidden text-left mt-2">
+                    <form onsubmit="saveProfileEdits(event)" class="space-y-3 text-xs">
+                        <div class="text-center mb-3">
+                            <label class="cursor-pointer text-[10px] font-bold text-blue-600 hover:text-blue-800 border border-blue-200 bg-blue-50 px-3 py-1.5 rounded-lg transition inline-flex items-center gap-1">
+                                <i class="ph ph-camera text-sm"></i> Mudar Foto
+                                <input type="file" id="imageUploadInput" accept="image/*" class="hidden" onchange="handleImageUpload(event)">
+                            </label>
+                        </div>
+                        <div>
+                            <label class="block font-bold text-gray-400 uppercase text-[9px] mb-1">Nome Completo</label>
+                            <input type="text" id="editNameInput" required class="w-full p-2.5 bg-gray-50 border rounded-xl outline-none transition">
+                        </div>
+                        <div>
+                            <label class="block font-bold text-gray-400 uppercase text-[9px] mb-1">Nova Senha de Acesso</label>
+                            <input type="text" id="editPassInput" required class="w-full p-2.5 bg-gray-50 border rounded-xl outline-none">
+                        </div>
+                        <div class="flex gap-2 pt-2">
+                            <button type="button" onclick="toggleProfileEdit()" class="flex-1 bg-gray-200 py-2 rounded-xl font-bold text-gray-600">Voltar</button>
+                            <button type="submit" id="btnSaveProfile" class="flex-1 bg-blue-600 text-white py-2 rounded-xl font-bold">Salvar Dados</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="deleteModal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+        <div class="bg-white p-6 rounded-2xl shadow-2xl max-w-sm w-full text-center fade-in">
+            <h3 class="text-base font-bold text-gray-800 mb-1">Confirmar Remoção</h3>
+            <p class="text-xs text-gray-500 mb-5">Tem certeza que deseja apagar este registro permanentemente?</p>
+            <div class="flex gap-3"><button onclick="closeDeleteModal()" class="flex-1 bg-gray-100 py-2 rounded-xl text-xs font-bold text-gray-700">Cancelar</button><button onclick="executeDeleteEvent()" class="flex-1 bg-red-600 text-white py-2 rounded-xl text-xs font-bold">Excluir</button></div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
