@@ -26,7 +26,7 @@ window.onload = async function() {
     try {
         if (!firebase.apps.length) { firebase.initializeApp(firebaseConfig); db = firebase.firestore(); }
         useMock = false;
-        document.getElementById('dbStatus').className = "mt-6 p-3 bg-green-50 rounded-lg text-xs text-green-700 text-center flex items-center justify-center gap-2"; document.getElementById('dbStatus').innerHTML = '<i class="ph ph-check-circle text-lg"></i> Conectado ao Firebase!';
+        document.getElementById('dbStatus').className = "mt-6 p-3 bg-green-50 rounded-lg text-xs text-green-700 text-center flex items-center justify-center gap-2"; document.getElementById('dbStatus').innerHTML = '<i class="ph ph-check-circle text-lg"></i> Conectado';
     } catch (e) { document.getElementById('dbStatus').className = "mt-6 p-3 bg-red-50 rounded-lg text-xs text-red-700 text-center flex items-center justify-center gap-2"; document.getElementById('dbStatus').innerHTML = '<i class="ph ph-warning text-lg"></i> Erro de Conexão'; }
 };
 
