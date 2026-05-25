@@ -50,7 +50,7 @@
                 <div id="dbStatus" class="mt-6 p-3 bg-gray-50 rounded-xl border text-xs text-gray-500 text-center flex items-center justify-center gap-2"><span class="loader border-gray-400 border-t-blue-500 w-4 h-4"></span> Conectando banco de dados...</div>
             </div>
 
-            <div id="appContainer" class="hidden w-full max-w-5xl mx-auto flex flex-col space-y-5 fade-in h-full">
+            <div id="appContainer" class="hidden w-full max-w-5xl mx-auto flex flex-col space-y-5 fade-in flex-grow">
                 
                 <div id="tab-home" class="view-panel flex flex-col space-y-4">
                     <div class="grid grid-cols-3 gap-3">
@@ -134,10 +134,12 @@
                                 <div class="col-span-1"><label class="block font-bold text-emerald-800 mb-1">Cargo</label><select id="newStaffRole" required class="w-full p-2 border rounded-md bg-white outline-none"><option value="coordinator">Coordenador</option><option value="teacher">Professor</option></select></div>
                                 <div class="col-span-2"><label class="block font-bold text-emerald-800 mb-1">Nome Completo</label><input type="text" id="newStaffName" required class="w-full p-2 border rounded-md"></div>
                                 <div class="col-span-2"><label class="block font-bold text-emerald-800 mb-1">E-mail (Login)</label><input type="email" id="newStaffEmail" required class="w-full p-2 border rounded-md"></div>
+                                
                                 <div class="sm:col-span-5">
                                     <label class="block font-bold text-emerald-800 mb-1">Turmas Atribuídas (Opcional - Selecione várias se necessário)</label>
                                     <div id="newStaffClassContainer" class="w-full p-2 border rounded-md bg-white border-emerald-200 max-h-24 overflow-y-auto flex flex-col gap-1"></div>
                                 </div>
+                                
                                 <div class="sm:col-span-5 flex gap-2 mt-2"><button type="submit" id="btnSaveStaff" class="bg-emerald-600 text-white px-6 py-2 rounded-md font-bold">Contratar Funcionário</button><button type="button" onclick="cancelStaffEdit()" id="btnCancelStaff" class="hidden bg-gray-300 px-4 rounded-md font-bold text-gray-700">Cancelar</button></div>
                             </form>
                             <ul id="settingsStaffList" class="text-xs divide-y border rounded-lg bg-white"></ul>
@@ -184,17 +186,20 @@
                     </div>
                 </div>
 
-                <div id="tab-grades" class="view-panel hidden flex flex-col space-y-4 h-[550px]">
+                <div id="tab-grades" class="view-panel hidden flex flex-col space-y-4 flex-grow md:h-[600px]">
                     <div class="bg-white p-4 rounded-xl border shadow-sm flex justify-between items-center shrink-0">
                         <h3 class="font-bold text-blue-800 uppercase tracking-wide"><i class="ph ph-file-text text-lg align-middle"></i> Central de Notas</h3>
                         <span id="lblGradingSystem" class="text-xs bg-blue-100 text-blue-800 px-3 py-1 rounded-lg font-bold">Bimestral</span>
                     </div>
-                    <div class="flex flex-col md:flex-row gap-4 flex-grow overflow-hidden">
+                    
+                    <div class="flex flex-col md:flex-row gap-4 flex-grow overflow-visible md:overflow-hidden">
+                        
                         <div class="md:w-1/3 flex flex-col bg-white rounded-xl border shadow-sm overflow-hidden shrink-0 h-64 md:h-full">
                             <div class="p-3 border-b bg-gray-50" id="gradesFilterContainer"><select id="gradesClassSelect" onchange="loadStudentsForGrades()" class="w-full p-2 border border-gray-200 rounded-md text-xs font-bold outline-none text-gray-700 bg-white"></select></div>
                             <ul id="gradesStudentList" class="flex-grow overflow-y-auto text-sm divide-y no-scrollbar"></ul>
                         </div>
-                        <div class="md:w-2/3 flex flex-col bg-white rounded-xl border shadow-sm overflow-hidden h-96 md:h-full">
+                        
+                        <div class="md:w-2/3 flex flex-col bg-white rounded-xl border shadow-sm overflow-hidden flex-grow min-h-[500px] md:h-full">
                             <div id="gradeFormContainer" class="p-4 border-b bg-gray-50 hidden shrink-0">
                                 <h4 class="text-xs font-bold text-blue-600 mb-2 uppercase tracking-wide">Lançar Nota: <span id="lblSelectedStudentName" class="text-gray-800"></span></h4>
                                 
@@ -203,10 +208,9 @@
                                     <select id="gradePeriodSelect" required class="p-2 border rounded-md outline-none bg-white"></select>
                                     <div class="flex gap-2">
                                         <input type="number" id="gradeInput" required step="0.1" min="0" max="10" placeholder="Nota" class="w-20 p-2 border rounded-md text-center font-bold outline-none">
-                                        <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white px-5 rounded-md font-bold transition">Salvar</button>
+                                        <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white px-5 rounded-md font-bold transition flex-grow sm:flex-grow-0">Salvar</button>
                                     </div>
                                 </form>
-                                
                             </div>
                             
                             <div class="p-4 bg-white border-b flex justify-between items-center shrink-0">
@@ -215,7 +219,7 @@
                                     <span id="selectedStudentClassLbl" class="text-[10px] text-blue-600 bg-blue-50 px-2 py-0.5 rounded border border-blue-100 font-bold uppercase hidden"></span>
                                 </div>
                                 <div id="gradesPeriodFilterContainer" class="hidden flex items-center gap-2">
-                                    <select id="viewGradePeriodSelect" onchange="filterGradesByPeriod()" class="p-1.5 border border-gray-300 rounded-lg text-xs outline-none bg-gray-50 text-gray-700 font-bold cursor-pointer"></select>
+                                    <select id="viewGradePeriodSelect" onchange="filterGradesByPeriod()" class="w-24 sm:w-auto p-1.5 border border-gray-300 rounded-lg text-xs outline-none bg-gray-50 text-gray-700 font-bold cursor-pointer"></select>
                                     <button onclick="generateBoletimPDF()" class="bg-red-500 hover:bg-red-600 text-white p-1.5 rounded-lg shadow-sm transition flex items-center gap-1 text-xs font-bold px-3">
                                         <i class="ph ph-file-pdf text-base"></i> PDF
                                     </button>
@@ -261,7 +265,7 @@
                     <div class="bg-white rounded-2xl border flex-grow p-4 shadow-sm flex flex-col"><h3 class="text-xs font-bold uppercase text-gray-500 tracking-wider border-b pb-2 mb-2">Agenda Escolar</h3><div id="eventsList" class="space-y-2 overflow-y-auto flex-grow"></div></div>
                 </div>
 
-                <div id="tab-messages" class="view-panel hidden bg-white rounded-2xl border flex flex-col overflow-hidden h-full min-h-[500px] shadow-sm">
+                <div id="tab-messages" class="view-panel hidden bg-white rounded-2xl border flex flex-col overflow-hidden flex-grow min-h-[500px] shadow-sm">
                     <div class="bg-purple-50 border-b p-3 flex justify-between items-center"><span class="text-xs font-bold text-purple-800 uppercase tracking-wide"><i class="ph ph-chat-circle-text text-base align-middle"></i> Mural de Comunicação</span><select id="chatFilter" onchange="loadMessages()" class="text-xs p-1 rounded border outline-none bg-white"><option value="all">Todas as Mensagens</option></select></div>
                     <div id="chatMessagesBox" class="flex-grow overflow-y-auto p-4 space-y-3 bg-gray-50"></div>
                     <div class="p-3 border-t bg-white shrink-0">
