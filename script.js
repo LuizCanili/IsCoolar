@@ -18,7 +18,13 @@ let selectedFileName = null, selectedFileBase64 = null, deleteType = null;
 let currentSchoolGradingSystem = "Bimestral"; 
 let currentAdminSchoolId = null, currentGradeStudentId = null, tempAvatarBase64 = null;
 let currentGradeStudentName = "", currentGradeStudentClass = "", currentStudentGrades = [], currentStudentFaltas = 0;
+
+let activeChatId = null; 
+let activeChatType = null; 
+let activeChatName = "";
+let activeChatAvatar = "";
 window.chatAttachments = {}; 
+let cropper = null;
 
 const mockDb = {}; 
 
@@ -26,7 +32,7 @@ window.onload = async function() {
     try {
         if (!firebase.apps.length) { firebase.initializeApp(firebaseConfig); db = firebase.firestore(); }
         useMock = false;
-        document.getElementById('dbStatus').className = "mt-6 p-3 bg-green-50 rounded-lg text-xs text-green-700 text-center flex items-center justify-center gap-2"; document.getElementById('dbStatus').innerHTML = '<i class="ph ph-check-circle text-lg"></i> Conectado';
+        document.getElementById('dbStatus').className = "mt-6 p-3 bg-green-50 rounded-lg text-xs text-green-700 text-center flex items-center justify-center gap-2"; document.getElementById('dbStatus').innerHTML = '<i class="ph ph-check-circle text-lg"></i> Conectado ao Firebase!';
     } catch (e) { document.getElementById('dbStatus').className = "mt-6 p-3 bg-red-50 rounded-lg text-xs text-red-700 text-center flex items-center justify-center gap-2"; document.getElementById('dbStatus').innerHTML = '<i class="ph ph-warning text-lg"></i> Erro de Conexão'; }
 };
 
@@ -35,16 +41,36 @@ window.onload = async function() {
 // ==========================================
 const navConfig = {
     admin: [ { id: 'management', icon: 'shield-star', label: 'Admin DB', action: "switchAdminTab('schools')" } ],
-    director: [ { id: 'home', icon: 'house', label: 'Início', action: 'loadDashboard()' }, { id: 'management', icon: 'briefcase', label: 'Gestão', action: "switchAdminTab('students')" }, { id: 'grades', icon: 'file-text', label: 'Notas', action: 'loadGrades()' }, { id: 'events', icon: 'calendar', label: 'Eventos', action: 'loadEvents()' }, { id: 'messages', icon: 'chat-circle', label: 'Mural', action: 'loadChat()' } ],
-    coordinator: [ { id: 'home', icon: 'house', label: 'Início', action: 'loadDashboard()' }, { id: 'management', icon: 'briefcase', label: 'Gestão', action: "switchAdminTab('students')" }, { id: 'grades', icon: 'file-text', label: 'Notas', action: 'loadGrades()' }, { id: 'events', icon: 'calendar', label: 'Eventos', action: 'loadEvents()' }, { id: 'messages', icon: 'chat-circle', label: 'Mural', action: 'loadChat()' } ],
-    teacher: [ { id: 'grades', icon: 'file-text', label: 'Notas', action: 'loadGrades()' }, { id: 'attendance', icon: 'list-checks', label: 'Chamada', action: 'loadAttendanceInit()' }, { id: 'events', icon: 'calendar', label: 'Eventos', action: 'loadEvents()' }, { id: 'messages', icon: 'chat-circle', label: 'Mural', action: 'loadChat()' } ],
-    parent: [ { id: 'grades', icon: 'student', label: 'Boletim', action: 'loadGrades()' }, { id: 'attendance', icon: 'list-checks', label: 'Faltas', action: 'loadParentAttendance()' }, { id: 'events', icon: 'calendar', label: 'Eventos', action: 'loadEvents()' }, { id: 'messages', icon: 'chat-circle', label: 'Recados', action: 'loadChat()' } ]
+    director: [ { id: 'home', icon: 'house', label: 'Início', action: 'loadDashboard()' }, { id: 'management', icon: 'briefcase', label: 'Gestão', action: "switchAdminTab('students')" }, { id: 'grades', icon: 'file-text', label: 'Notas', action: 'loadGrades()' }, { id: 'attendance', icon: 'list-checks', label: 'Chamada', action: 'loadAttendanceInit()' }, { id: 'events', icon: 'calendar', label: 'Eventos', action: 'loadEvents()' }, { id: 'messages', icon: 'chat-circle', label: 'Chat', action: 'renderChatContacts()' } ],
+    coordinator: [ { id: 'home', icon: 'house', label: 'Início', action: 'loadDashboard()' }, { id: 'management', icon: 'briefcase', label: 'Gestão', action: "switchAdminTab('students')" }, { id: 'grades', icon: 'file-text', label: 'Notas', action: 'loadGrades()' }, { id: 'attendance', icon: 'list-checks', label: 'Chamada', action: 'loadAttendanceInit()' }, { id: 'events', icon: 'calendar', label: 'Eventos', action: 'loadEvents()' }, { id: 'messages', icon: 'chat-circle', label: 'Chat', action: 'renderChatContacts()' } ],
+    teacher: [ { id: 'grades', icon: 'file-text', label: 'Notas', action: 'loadGrades()' }, { id: 'attendance', icon: 'list-checks', label: 'Chamada', action: 'loadAttendanceInit()' }, { id: 'events', icon: 'calendar', label: 'Eventos', action: 'loadEvents()' }, { id: 'messages', icon: 'chat-circle', label: 'Chat', action: 'renderChatContacts()' } ],
+    parent: [ { id: 'grades', icon: 'student', label: 'Boletim', action: 'loadGrades()' }, { id: 'attendance', icon: 'list-checks', label: 'Faltas', action: 'loadAttendanceInit()' }, { id: 'events', icon: 'calendar', label: 'Eventos', action: 'loadEvents()' }, { id: 'messages', icon: 'chat-circle', label: 'Chat', action: 'renderChatContacts()' } ]
 };
 
 const roleLabels = { admin: "Administrador", director: "Diretor(a)", coordinator: "Coordenador(a)", teacher: "Professor(a)", parent: "Responsável" };
 
-function generateAvatar(name, role) { const seed = name.replace(/\s+/g, '') + role; return `https://api.dicebear.com/8.x/bottts/svg?seed=${seed}&backgroundColor=e2e8f0`; }
+// ==========================================
+// GERADOR INTELIGENTE DE AVATARES COM INICIAIS
+// ==========================================
+function getInitials(name, type='USER') {
+    if(!name) return "U";
+    let cleanName = String(name).replace(/\(.*?\)/g, '').trim().toUpperCase();
+    if (type === 'GROUP') {
+        if(cleanName.includes('INFANTIL')) { let num = cleanName.replace(/\D/g, ''); return 'I' + (num || 'N'); }
+        let n = cleanName.replace(/º|ª/g, '').replace(/\s+/g, ''); 
+        if (n.length >= 2) return n.substring(0, 2); return n[0] || 'G';
+    } else {
+        let parts = cleanName.split(/\s+/);
+        if (parts.length === 1) { let word = parts[0]; return word.length >= 2 ? word.substring(0, 2) : word[0]; }
+        return parts[0][0] + parts[parts.length - 1][0]; 
+    }
+}
+function generateAvatar(name, role) { const initials = getInitials(name, 'USER'); const bgColors = { admin: 'ef4444', director: 'f97316', coordinator: '10b981', teacher: '3b82f6', parent: '6b7280' }; const bg = bgColors[role] || '6b7280'; return `https://ui-avatars.com/api/?name=${initials}&background=${bg}&color=fff&rounded=true&font-size=0.4`; }
+function generateGroupAvatar(name) { const initials = getInitials(name, 'GROUP'); return `https://ui-avatars.com/api/?name=${initials}&background=8b5cf6&color=fff&rounded=true&font-size=0.4`; }
 
+// ==========================================
+// LOGIN E CONTEXTO
+// ==========================================
 async function handleLogin(e) {
     e.preventDefault(); const btn = document.getElementById('btnLoginSubmit'); const orig = btn.innerHTML; btn.innerHTML = '<span class="loader border-t-white w-4 h-4"></span>';
     const email = document.getElementById('loginEmail').value.toLowerCase().trim(); const pass = document.getElementById('loginPassword').value;
@@ -67,7 +93,6 @@ async function handleLogin(e) {
         buildNav(currentUser.role); switchTab(navConfig[currentUser.role][0].id); eval(navConfig[currentUser.role][0].action);
         
         if(currentUser.role !== 'admin' && currentUser.role !== 'director') { document.getElementById('eventFormContainer')?.classList.add('hidden'); }
-        if(currentUser.role === 'parent') { document.getElementById('gradeFormContainer')?.classList.add('hidden'); document.getElementById('attendanceFormContainer')?.classList.add('hidden'); }
         if(currentUser.role === 'admin') { document.getElementById('adminTabBtn-schools').classList.remove('hidden'); document.getElementById('adminGlobalSchoolSelector').classList.remove('hidden'); document.getElementById('adminGlobalSchoolSelector').classList.add('flex'); populateAdminSchoolsDropdown(); }
     } catch(err) { alert("Falha no Login: " + err.message); } finally { btn.innerHTML = orig; }
 }
@@ -94,13 +119,7 @@ async function getFilteredData(collectionName, orderByField = null) {
         let ref = db.collection(collectionName);
         if(collectionName !== 'schools' && collectionName !== 'global_subjects') { if(!targetSchool) return []; ref = ref.where('school_id', '==', targetSchool); }
         const snapshot = await ref.get(); let data = snapshot.docs.map(d => ({id: d.id, ...d.data()}));
-        if(orderByField) { 
-            data.sort((a,b) => {
-                const valA = a[orderByField]; const valB = b[orderByField];
-                if(typeof valA === 'number' && typeof valB === 'number') return valA - valB;
-                return String(valA || '').localeCompare(String(valB || ''));
-            }); 
-        }
+        if(orderByField) { data.sort((a,b) => { const valA = a[orderByField]; const valB = b[orderByField]; if(typeof valA === 'number' && typeof valB === 'number') return valA - valB; return String(valA || '').localeCompare(String(valB || '')); }); }
         return data;
     } catch (err) { console.error(`Erro ao buscar ${collectionName}:`, err); return []; }
 }
@@ -119,42 +138,23 @@ async function changeAdminSchoolContext() {
 }
 
 // ==========================================
-// MODAL DE PERFIL
+// MODAL DE PERFIL E CROPPER
 // ==========================================
-function openProfileModal() { 
-    document.getElementById('profileModal').classList.remove('hidden'); document.getElementById('modalAvatarView').src = currentUser.avatar_url; document.getElementById('modalNameView').innerText = currentUser.name; document.getElementById('modalEmailView').innerText = currentUser.email; document.getElementById('editNameInput').value = currentUser.name; document.getElementById('editPassInput').value = currentUser.password; 
-    if (currentUser.role !== 'admin') { document.getElementById('editNameInput').readOnly = true; document.getElementById('editNameInput').classList.add('bg-gray-200', 'text-gray-500', 'cursor-not-allowed'); } else { document.getElementById('editNameInput').readOnly = false; document.getElementById('editNameInput').classList.remove('bg-gray-200', 'text-gray-500', 'cursor-not-allowed'); }
-    tempAvatarBase64 = null; document.getElementById('profileViewMode').classList.remove('hidden'); document.getElementById('profileEditMode').classList.add('hidden'); 
-}
+function openProfileModal() { document.getElementById('profileModal').classList.remove('hidden'); document.getElementById('modalAvatarView').src = currentUser.avatar_url; document.getElementById('modalNameView').innerText = currentUser.name; document.getElementById('modalEmailView').innerText = currentUser.email; document.getElementById('editNameInput').value = currentUser.name; document.getElementById('editPassInput').value = currentUser.password; if (currentUser.role !== 'admin') { document.getElementById('editNameInput').readOnly = true; document.getElementById('editNameInput').classList.add('bg-gray-200', 'text-gray-500', 'cursor-not-allowed'); } else { document.getElementById('editNameInput').readOnly = false; document.getElementById('editNameInput').classList.remove('bg-gray-200', 'text-gray-500', 'cursor-not-allowed'); } tempAvatarBase64 = null; document.getElementById('profileViewMode').classList.remove('hidden'); document.getElementById('profileEditMode').classList.add('hidden'); }
 function closeProfileModal() { document.getElementById('profileModal').classList.add('hidden'); }
 function toggleProfileEdit() { document.getElementById('profileViewMode').classList.toggle('hidden'); document.getElementById('profileEditMode').classList.toggle('hidden'); }
-function handleImageUpload(event) { const file = event.target.files[0]; if (file) { if (file.size > 2 * 1024 * 1024) { alert("A imagem deve ter no máximo 2MB."); return; } const reader = new FileReader(); reader.onload = function(e) { tempAvatarBase64 = e.target.result; document.getElementById('modalAvatarView').src = tempAvatarBase64; }; reader.readAsDataURL(file); } }
+function handleImageUpload(event) { const file = event.target.files[0]; if (file) { const reader = new FileReader(); reader.onload = function(e) { document.getElementById('cropImage').src = e.target.result; document.getElementById('cropModal').classList.remove('hidden'); if (cropper) { cropper.destroy(); } const imageElement = document.getElementById('cropImage'); cropper = new Cropper(imageElement, { aspectRatio: 1, viewMode: 1, dragMode: 'move', autoCropArea: 1, restore: false, guides: true, center: true, highlight: false, cropBoxMovable: true, cropBoxResizable: true, toggleDragModeOnDblclick: false, }); }; reader.readAsDataURL(file); } event.target.value = ''; }
+function closeCropModal() { document.getElementById('cropModal').classList.add('hidden'); if(cropper) { cropper.destroy(); cropper = null; } }
+function applyCrop() { if (!cropper) return; const canvas = cropper.getCroppedCanvas({ width: 256, height: 256, imageSmoothingEnabled: true, imageSmoothingQuality: 'high' }); tempAvatarBase64 = canvas.toDataURL('image/jpeg', 0.8); document.getElementById('modalAvatarView').src = tempAvatarBase64; closeCropModal(); }
 async function saveProfileEdits(e) { e.preventDefault(); const p = document.getElementById('editPassInput').value; const n = document.getElementById('editNameInput').value; const btn = document.getElementById('btnSaveProfile'); btn.innerText = "Salvando..."; let updates = { password: p }; if(currentUser.role === 'admin') updates.name = n; if(tempAvatarBase64) updates.avatar_url = tempAvatarBase64; try { await db.collection('users').doc(currentUser.id).update(updates); currentUser.password = p; if(currentUser.role === 'admin') currentUser.name = n; if(tempAvatarBase64) { currentUser.avatar_url = tempAvatarBase64; document.getElementById('userAvatarDisplay').src = tempAvatarBase64; } document.getElementById('userNameDisplay').innerText = currentUser.name; alert("Perfil atualizado!"); toggleProfileEdit(); openProfileModal(); } catch(err) { alert("Erro: " + err.message); } finally { btn.innerText = "Salvar Dados"; } }
-
 async function resetUserPassword(userId) { if(confirm("Deseja realmente resetar a senha deste usuário para '123'?")) { try { await db.collection('users').doc(userId).update({password: '123'}); alert("Senha resetada com sucesso para: 123"); } catch(e) { alert("Erro ao resetar senha."); } } }
-
 async function loadDashboard() { let s = await getFilteredData('students'); let u = await getFilteredData('users'); let e = await getFilteredData('events'); document.getElementById('statStudents').innerText = s.length; document.getElementById('statTeachers').innerText = u.filter(x=>x.role==='teacher'||x.role==='coordinator').length; document.getElementById('statEvents').innerText = e.length; }
 
 // ==========================================
-// GESTÃO GERAL
+// GESTÃO
 // ==========================================
-function switchAdminTab(tab) {
-    ['schools', 'students', 'staff', 'classes', 'subjects', 'system'].forEach(t => { const v=document.getElementById(`adminView-${t}`); const b=document.getElementById(`adminTabBtn-${t}`); if(v) { v.classList.add('hidden'); Array.from(v.children).forEach(child => { if(child.id !== 'adminSchoolWarning') child.style.display = ''; }); const warning = v.querySelector('#adminSchoolWarning'); if(warning) warning.remove(); } if(b) b.classList.remove('bg-white','shadow-sm','text-gray-800'); });
-    const activeView = document.getElementById(`adminView-${tab}`); if(activeView) activeView.classList.remove('hidden'); if(document.getElementById(`adminTabBtn-${tab}`)) document.getElementById(`adminTabBtn-${tab}`).classList.add('bg-white','shadow-sm','text-gray-800');
-    if(currentUser.role === 'coordinator') { ['adminTabBtn-classes', 'adminTabBtn-subjects', 'adminTabBtn-system'].forEach(id => { if(document.getElementById(id)) document.getElementById(id).classList.add('hidden'); }); }
-    if(currentUser.role === 'admin' && !currentAdminSchoolId && tab !== 'schools' && tab !== 'system') { if(activeView) { Array.from(activeView.children).forEach(child => child.style.display = 'none'); const warningMsg = document.createElement('div'); warningMsg.id = 'adminSchoolWarning'; warningMsg.className = 'p-6 text-center text-blue-600 font-bold bg-blue-50 rounded-xl border border-blue-200 mt-2'; warningMsg.innerHTML = '<i class="ph ph-info text-xl align-middle mr-1"></i> Por favor, selecione uma escola no menu azul acima primeiro.'; activeView.appendChild(warningMsg); } return; } 
-    if(tab==='system') document.getElementById('globalGradingSystem').value = currentSchoolGradingSystem;
-    if(tab==='schools') loadAdminSchools(); if(tab==='students') loadAdminStudents(); if(tab==='staff') loadAdminStaff(); if(tab==='classes') loadAdminClasses(); if(tab==='subjects') loadAdminSubjects();
-}
-
-async function populateSelects() {
-    let c = await getFilteredData('classes', 'name'); if((currentUser.role === 'coordinator' || currentUser.role === 'teacher') && currentUser.class_name) { const myClasses = currentUser.class_name.split(', '); c = c.filter(cls => myClasses.includes(cls.name)); }
-    const opt = '<option value="" disabled selected>Turma...</option>' + c.map(x=>`<option value="${x.name}">${x.name}</option>`).join('');
-    ['newStudentClass'].forEach(id => { if(document.getElementById(id)) document.getElementById(id).innerHTML = opt; });
-    const roleSelect = document.getElementById('newStaffRole'); if(roleSelect) { if(currentUser.role === 'coordinator') { roleSelect.innerHTML = '<option value="teacher">Professor</option>'; } else { roleSelect.innerHTML = '<option value="coordinator">Coordenador</option><option value="teacher">Professor</option>'; } }
-    const staffClassContainer = document.getElementById('newStaffClassContainer'); if(staffClassContainer) { let allC = await getFilteredData('classes', 'name'); staffClassContainer.innerHTML = allC.map(x => `<label class="flex items-center gap-2 cursor-pointer text-xs"><input type="checkbox" class="staff-class-checkbox w-3 h-3 text-emerald-600" value="${x.name}"> ${x.name}</label>`).join(''); }
-}
-
+function switchAdminTab(tab) { ['schools', 'students', 'staff', 'classes', 'subjects', 'system'].forEach(t => { const v=document.getElementById(`adminView-${t}`); const b=document.getElementById(`adminTabBtn-${t}`); if(v) { v.classList.add('hidden'); Array.from(v.children).forEach(child => { if(child.id !== 'adminSchoolWarning') child.style.display = ''; }); const warning = v.querySelector('#adminSchoolWarning'); if(warning) warning.remove(); } if(b) b.classList.remove('bg-white','shadow-sm','text-gray-800'); }); const activeView = document.getElementById(`adminView-${tab}`); if(activeView) activeView.classList.remove('hidden'); if(document.getElementById(`adminTabBtn-${tab}`)) document.getElementById(`adminTabBtn-${tab}`).classList.add('bg-white','shadow-sm','text-gray-800'); if(currentUser.role === 'coordinator') { ['adminTabBtn-classes', 'adminTabBtn-subjects', 'adminTabBtn-system'].forEach(id => { if(document.getElementById(id)) document.getElementById(id).classList.add('hidden'); }); } if(currentUser.role === 'admin' && !currentAdminSchoolId && tab !== 'schools' && tab !== 'system') { if(activeView) { Array.from(activeView.children).forEach(child => child.style.display = 'none'); const warningMsg = document.createElement('div'); warningMsg.id = 'adminSchoolWarning'; warningMsg.className = 'p-6 text-center text-blue-600 font-bold bg-blue-50 rounded-xl border border-blue-200 mt-2'; warningMsg.innerHTML = '<i class="ph ph-info text-xl align-middle mr-1"></i> Por favor, selecione uma escola no menu azul acima primeiro.'; activeView.appendChild(warningMsg); } return; } if(tab==='system') document.getElementById('globalGradingSystem').value = currentSchoolGradingSystem; if(tab==='schools') loadAdminSchools(); if(tab==='students') loadAdminStudents(); if(tab==='staff') loadAdminStaff(); if(tab==='classes') loadAdminClasses(); if(tab==='subjects') loadAdminSubjects(); }
+async function populateSelects() { let c = await getFilteredData('classes', 'name'); if((currentUser.role === 'coordinator' || currentUser.role === 'teacher') && currentUser.class_name) { const myClasses = currentUser.class_name.split(', '); c = c.filter(cls => myClasses.includes(cls.name)); } const opt = '<option value="" disabled selected>Turma...</option>' + c.map(x=>`<option value="${x.name}">${x.name}</option>`).join(''); ['newStudentClass'].forEach(id => { if(document.getElementById(id)) document.getElementById(id).innerHTML = opt; }); const roleSelect = document.getElementById('newStaffRole'); if(roleSelect) { if(currentUser.role === 'coordinator') { roleSelect.innerHTML = '<option value="teacher">Professor</option>'; } else { roleSelect.innerHTML = '<option value="coordinator">Coordenador</option><option value="teacher">Professor</option>'; } } const staffClassContainer = document.getElementById('newStaffClassContainer'); if(staffClassContainer) { let allC = await getFilteredData('classes', 'name'); staffClassContainer.innerHTML = allC.map(x => `<label class="flex items-center gap-2 cursor-pointer text-xs"><input type="checkbox" class="staff-class-checkbox w-3 h-3 text-emerald-600" value="${x.name}"> ${x.name}</label>`).join(''); } }
 async function loadAdminSchools() { const list=document.getElementById('settingsSchoolsList'); list.innerHTML=''; let s=await getFilteredData('schools', 'name'); loadedSchools=s; if(editingSchoolId === null) document.getElementById('newSchoolId').value = 'escola_' + (s.length + 1); s.forEach(x => { list.innerHTML+=`<li class="p-3 flex justify-between items-center"><div class="flex flex-col"><strong class="text-gray-800">${x.name}</strong><span class="text-[10px] text-gray-500 uppercase">ID: ${x.id} • ${x.cidade||'Sem Cidade'}/${x.estado||'UF'}</span></div><div class="flex gap-2"><button onclick="startEditSchool('${x.id}')" class="text-blue-500 hover:bg-blue-50 p-1.5 rounded"><i class="ph ph-pencil-simple text-lg"></i></button><button onclick="openDeleteModal('${x.id}', 'school')" class="text-red-500 hover:bg-red-50 p-1.5 rounded"><i class="ph ph-trash text-lg"></i></button></div></li>`; }); }
 async function adminSaveSchool(e) { e.preventDefault(); const btn = document.getElementById('btnSaveSchool'); const originalText = btn.innerText; btn.innerText = 'Salvando...'; try { const id=document.getElementById('newSchoolId').value.trim(); const name=document.getElementById('newSchoolName').value.trim(); const phone=document.getElementById('newSchoolPhone').value; const logradouro=document.getElementById('newSchoolLogradouro').value; const numero=document.getElementById('newSchoolNumero').value; const bairro=document.getElementById('newSchoolBairro').value; const cidade=document.getElementById('newSchoolCidade').value; const estado=document.getElementById('newSchoolEstado').value; const cep=document.getElementById('newSchoolCEP').value; const dName=document.getElementById('newDirName').value.trim(); const dEmail=document.getElementById('newDirEmail').value.trim(); const dPass=document.getElementById('newDirPass').value; const sData = {name, phone, logradouro, numero, bairro, city: cidade, estado, cep}; if (editingSchoolId === null) { sData.grading_system = 'Bimestral'; await db.collection('schools').doc(id).set(sData); await db.collection('users').add({email:dEmail, name:dName, role:'director', password:dPass, school_id:id}); alert("Escola e Diretor cadastrados!"); } else { await db.collection('schools').doc(editingSchoolId).update(sData); const q = await db.collection('users').where('school_id','==',editingSchoolId).where('role','==','director').get(); if(!q.empty) await db.collection('users').doc(q.docs[0].id).update({name:dName, email:dEmail, password:dPass}); else await db.collection('users').add({email:dEmail, name:dName, role:'director', password:dPass, school_id:editingSchoolId}); alert("Escola e Diretor atualizados!"); } cancelSchoolEdit(); loadAdminSchools(); populateAdminSchoolsDropdown(); } catch (err) { console.error(err); alert("Falha: " + err.message); } finally { btn.innerText = originalText; } }
 async function startEditSchool(id) { try { const sc = loadedSchools.find(x=>x.id===id); if(!sc) return; editingSchoolId = id; document.getElementById('newSchoolId').value = sc.id; document.getElementById('newSchoolId').readOnly = true; ['Name','Phone','Logradouro','Numero','Bairro','Cidade','Estado','CEP'].forEach(f => { if(document.getElementById(`newSchool${f}`)) document.getElementById(`newSchool${f}`).value = sc[f.toLowerCase()]||''; }); const q = await db.collection('users').where('school_id','==',id).where('role','==','director').get(); let dir = null; if(!q.empty) dir = q.docs[0].data(); if(dir) { document.getElementById('newDirName').value = dir.name; document.getElementById('newDirEmail').value = dir.email; document.getElementById('newDirPass').value = dir.password; } else { document.getElementById('newDirName').value = ''; document.getElementById('newDirEmail').value = ''; document.getElementById('newDirPass').value = '123'; } document.getElementById('btnSaveSchool').innerText = 'Atualizar Instituição'; document.getElementById('btnCancelSchool').classList.remove('hidden'); document.getElementById('adminView-schools').scrollIntoView({behavior: 'smooth', block: 'start'}); } catch (err) { alert("Falha ao carregar formulário de edição."); } }
@@ -181,268 +181,229 @@ async function directorSaveSubjects(e) { e.preventDefault(); const schId = curre
 async function updateGradingSystem() { const val = document.getElementById('globalGradingSystem').value; currentSchoolGradingSystem = val; const schId = currentUser.role === 'admin' ? currentAdminSchoolId : currentUser.school_id; if(!schId) return alert("Selecione uma escola primeiro."); await db.collection('schools').doc(schId).update({grading_system: val}); alert("Sistema de avaliação atualizado para esta escola!"); }
 
 // ==========================================
-// CENTRAL DE NOTAS E FREQUÊNCIA COM BOLETIM PDF
+// CENTRAL DE NOTAS E BOLETIM PDF
 // ==========================================
-async function loadGrades() { 
-    const isParent = currentUser.role === 'parent'; 
-    document.getElementById('gradeFormContainer')?.classList.add('hidden'); document.getElementById('gradesTableContainer').classList.add('hidden'); document.getElementById('noStudentSelectedMsg').classList.remove('hidden'); document.getElementById('selectedStudentClassLbl').classList.add('hidden'); document.getElementById('gradesStudentList').innerHTML = ''; document.getElementById('lblGradingSystem').innerText = "Boletim " + currentSchoolGradingSystem; 
-    
-    // Alimenta Seletor do Form e Filtro de Visualização
-    const periodSel = document.getElementById('gradePeriodSelect'); 
-    const viewPeriodSel = document.getElementById('viewGradePeriodSelect');
-    if (periodSel) { 
-        periodSel.innerHTML = '<option value="" disabled selected>Período...</option>'; 
-        if(viewPeriodSel) viewPeriodSel.innerHTML = '<option value="ALL">Todos os Períodos</option>';
-        if (currentSchoolGradingSystem === 'Bimestral') [1,2,3,4].forEach(i => { periodSel.innerHTML += `<option value="${i}º Bimestre">${i}º Bimestre</option>`; if(viewPeriodSel) viewPeriodSel.innerHTML += `<option value="${i}º Bimestre">${i}º Bimestre</option>`; }); 
-        else if (currentSchoolGradingSystem === 'Trimestral') [1,2,3].forEach(i => { periodSel.innerHTML += `<option value="${i}º Trimestre">${i}º Trimestre</option>`; if(viewPeriodSel) viewPeriodSel.innerHTML += `<option value="${i}º Trimestre">${i}º Trimestre</option>`; }); 
-        else if (currentSchoolGradingSystem === 'Semestral') [1,2].forEach(i => { periodSel.innerHTML += `<option value="${i}º Semestre">${i}º Semestre</option>`; if(viewPeriodSel) viewPeriodSel.innerHTML += `<option value="${i}º Semestre">${i}º Semestre</option>`; }); 
-    } 
-
-    if(isParent) { 
-        document.getElementById('gradesFilterContainer').classList.add('hidden'); let childIds = String(currentUser.child_id).split(',').map(s=>s.trim()); let stds = await getFilteredData('students', 'name'); let myChildren = stds.filter(s => childIds.includes(String(s.id))); myChildren.forEach(s => { document.getElementById('gradesStudentList').innerHTML += `<li onclick="selectStudentForGrades('${s.id}', '${s.name}', '${s.class_name}')" class="student-grade-item p-4 cursor-pointer hover:bg-blue-50 transition border-b flex justify-between items-center text-gray-700 font-bold" id="stdItem-${s.id}"><span><i class="ph ph-user text-gray-400 mr-2"></i>${s.name}</span> <i class="ph ph-caret-right text-gray-300"></i></li>`; }); 
-    } else { 
-        document.getElementById('gradesFilterContainer').classList.remove('hidden'); let cls = await getFilteredData('classes', 'name'); if((currentUser.role === 'teacher' || currentUser.role === 'coordinator') && currentUser.class_name) { const myClasses = currentUser.class_name.split(', '); cls = cls.filter(c => myClasses.includes(c.name)); } let sel = document.getElementById('gradesClassSelect'); sel.innerHTML = '<option value="ALL">Todas as Suas Turmas</option>' + cls.map(c => `<option value="${c.name}">${c.name}</option>`).join(''); loadStudentsForGrades(); let subs = await getFilteredData('subjects', 'name'); document.getElementById('gradeSubjectSelect').innerHTML = '<option value="" disabled selected>Matéria...</option>' + subs.map(s => `<option value="${s.name}">${s.name}</option>`).join(''); 
-    } 
-}
-
+async function loadGrades() { const isParent = currentUser.role === 'parent'; document.getElementById('gradeFormContainer')?.classList.add('hidden'); document.getElementById('gradesTableContainer').classList.add('hidden'); document.getElementById('noStudentSelectedMsg').classList.remove('hidden'); document.getElementById('selectedStudentClassLbl').classList.add('hidden'); document.getElementById('gradesStudentList').innerHTML = ''; document.getElementById('lblGradingSystem').innerText = "Boletim " + currentSchoolGradingSystem; const periodSel = document.getElementById('gradePeriodSelect'); const viewPeriodSel = document.getElementById('viewGradePeriodSelect'); if (periodSel) { periodSel.innerHTML = '<option value="" disabled selected>Período...</option>'; if(viewPeriodSel) viewPeriodSel.innerHTML = '<option value="ALL">Todos os Períodos</option>'; if (currentSchoolGradingSystem === 'Bimestral') [1,2,3,4].forEach(i => { periodSel.innerHTML += `<option value="${i}º Bimestre">${i}º Bimestre</option>`; if(viewPeriodSel) viewPeriodSel.innerHTML += `<option value="${i}º Bimestre">${i}º Bimestre</option>`; }); else if (currentSchoolGradingSystem === 'Trimestral') [1,2,3].forEach(i => { periodSel.innerHTML += `<option value="${i}º Trimestre">${i}º Trimestre</option>`; if(viewPeriodSel) viewPeriodSel.innerHTML += `<option value="${i}º Trimestre">${i}º Trimestre</option>`; }); else if (currentSchoolGradingSystem === 'Semestral') [1,2].forEach(i => { periodSel.innerHTML += `<option value="${i}º Semestre">${i}º Semestre</option>`; if(viewPeriodSel) viewPeriodSel.innerHTML += `<option value="${i}º Semestre">${i}º Semestre</option>`; }); } if(isParent) { document.getElementById('gradesFilterContainer').classList.add('hidden'); let childIds = String(currentUser.child_id).split(',').map(s=>s.trim()); let stds = await getFilteredData('students', 'name'); let myChildren = stds.filter(s => childIds.includes(String(s.id))); myChildren.forEach(s => { document.getElementById('gradesStudentList').innerHTML += `<li onclick="selectStudentForGrades('${s.id}', '${s.name}', '${s.class_name}')" class="student-grade-item p-4 cursor-pointer hover:bg-blue-50 transition border-b flex justify-between items-center text-gray-700 font-bold" id="stdItem-${s.id}"><span><i class="ph ph-user text-gray-400 mr-2"></i>${s.name}</span> <i class="ph ph-caret-right text-gray-300"></i></li>`; }); } else { document.getElementById('gradesFilterContainer').classList.remove('hidden'); let cls = await getFilteredData('classes', 'name'); if((currentUser.role === 'teacher' || currentUser.role === 'coordinator') && currentUser.class_name) { const myClasses = currentUser.class_name.split(', '); cls = cls.filter(c => myClasses.includes(c.name)); } let sel = document.getElementById('gradesClassSelect'); sel.innerHTML = '<option value="ALL">Todas as Suas Turmas</option>' + cls.map(c => `<option value="${c.name}">${c.name}</option>`).join(''); loadStudentsForGrades(); let subs = await getFilteredData('subjects', 'name'); document.getElementById('gradeSubjectSelect').innerHTML = '<option value="" disabled selected>Matéria...</option>' + subs.map(s => `<option value="${s.name}">${s.name}</option>`).join(''); } }
 async function loadStudentsForGrades() { const clsName = document.getElementById('gradesClassSelect').value; const list = document.getElementById('gradesStudentList'); list.innerHTML = '<div class="p-3 text-gray-400 text-xs text-center">Carregando...</div>'; let stds = await getFilteredData('students', 'name'); if((currentUser.role === 'teacher' || currentUser.role === 'coordinator') && currentUser.class_name) { const myClasses = currentUser.class_name.split(', '); stds = stds.filter(s => myClasses.includes(s.class_name)); } if(clsName !== 'ALL') stds = stds.filter(s => s.class_name === clsName); list.innerHTML = ''; if(stds.length === 0) list.innerHTML = '<div class="p-3 text-gray-400 text-xs text-center">Nenhum aluno.</div>'; stds.forEach(s => { list.innerHTML += `<li onclick="selectStudentForGrades('${s.id}', '${s.name}', '${s.class_name}')" class="student-grade-item p-3 cursor-pointer hover:bg-blue-50 transition border-b flex justify-between items-center text-gray-700 font-medium" id="stdItem-${s.id}"><span>${s.name}</span> <i class="ph ph-caret-right text-gray-300"></i></li>`; }); }
-
-async function selectStudentForGrades(id, name, className) { 
-    currentGradeStudentId = id; 
-    currentGradeStudentName = name;
-    currentGradeStudentClass = className;
-    
-    document.querySelectorAll('.student-grade-item').forEach(el => el.classList.remove('bg-blue-100', 'text-blue-700', 'border-l-4', 'border-blue-600')); 
-    const item = document.getElementById(`stdItem-${id}`); if(item) item.classList.add('bg-blue-100', 'text-blue-700', 'border-l-4', 'border-blue-600'); 
-    
-    document.getElementById('noStudentSelectedMsg').classList.add('hidden'); 
-    document.getElementById('gradesTableContainer').classList.remove('hidden'); 
-    document.getElementById('selectedStudentClassLbl').innerText = className; 
-    document.getElementById('selectedStudentClassLbl').classList.remove('hidden'); 
-    
-    // Revelar menu do PDF e Filtro de Períodos
-    const pdfMenu = document.getElementById('gradesPeriodFilterContainer');
-    if(pdfMenu) pdfMenu.classList.remove('hidden');
-
-    if(currentUser.role !== 'parent') { document.getElementById('gradeFormContainer').classList.remove('hidden'); document.getElementById('lblSelectedStudentName').innerText = name; } 
-    
-    // Calcula as Faltas Globais do aluno selecionado
-    let att = await getFilteredData('attendance');
-    currentStudentFaltas = att.filter(a => a.student_id === id && a.status === 'Falta').length;
-
-    // Carrega as Notas
-    let grades = await getFilteredData('grades'); 
-    currentStudentGrades = grades.filter(g => g.student_id === id).reverse(); 
-    
-    renderGradesTable();
-}
-
+async function selectStudentForGrades(id, name, className) { currentGradeStudentId = id; currentGradeStudentName = name; currentGradeStudentClass = className; document.querySelectorAll('.student-grade-item').forEach(el => el.classList.remove('bg-blue-100', 'text-blue-700', 'border-l-4', 'border-blue-600')); const item = document.getElementById(`stdItem-${id}`); if(item) item.classList.add('bg-blue-100', 'text-blue-700', 'border-l-4', 'border-blue-600'); document.getElementById('noStudentSelectedMsg').classList.add('hidden'); document.getElementById('gradesTableContainer').classList.remove('hidden'); document.getElementById('selectedStudentClassLbl').innerText = className; document.getElementById('selectedStudentClassLbl').classList.remove('hidden'); const pdfMenu = document.getElementById('gradesPeriodFilterContainer'); if(pdfMenu) pdfMenu.classList.remove('hidden'); if(currentUser.role !== 'parent') { document.getElementById('gradeFormContainer').classList.remove('hidden'); document.getElementById('lblSelectedStudentName').innerText = name; } let att = await getFilteredData('attendance'); currentStudentFaltas = att.filter(a => a.student_id === id && a.status === 'Falta').length; let grades = await getFilteredData('grades'); currentStudentGrades = grades.filter(g => g.student_id === id).reverse(); renderGradesTable(); }
 function filterGradesByPeriod() { renderGradesTable(); }
+function renderGradesTable() { const tbody = document.getElementById('gradesTable'); const periodFilter = document.getElementById('viewGradePeriodSelect').value; let grades = currentStudentGrades; if(periodFilter !== 'ALL') grades = grades.filter(g => g.period === periodFilter); tbody.innerHTML = ''; if(grades.length === 0) { tbody.innerHTML = '<tr><td colspan="4" class="text-center py-4 text-gray-400">Nenhuma nota lançada para este período.</td></tr>'; return; } grades.forEach(g => { let c = g.value >= 7 ? 'text-green-600' : 'text-red-600'; const btnDelete = (currentUser.role === 'director' || currentUser.role === 'coordinator' || currentUser.role === 'teacher') ? `<button onclick="openDeleteModal('${g.id}', 'grade')" class="ml-2 text-red-400 hover:text-red-600"><i class="ph ph-trash"></i></button>` : ''; const displayPeriod = g.period || g.date; tbody.innerHTML += `<tr><td class="py-2">${g.subject}</td><td class="py-2 text-gray-500 font-medium">${displayPeriod}</td><td class="py-2 text-center text-gray-500 font-bold">${currentStudentFaltas}</td><td class="py-2 text-right font-black ${c}">${g.value.toFixed(1)} ${btnDelete}</td></tr>`; }); }
+async function addGrade(e) { e.preventDefault(); const subject = document.getElementById('gradeSubjectSelect').value; const period = document.getElementById('gradePeriodSelect').value; const value = parseFloat(document.getElementById('gradeInput').value); const date = new Date().toLocaleDateString('pt-BR'); if(!currentGradeStudentId) return; const schId = currentUser.role === 'admin' ? currentAdminSchoolId : currentUser.school_id; await db.collection('grades').add({ student_id: currentGradeStudentId, subject, period, value, date, school_id: schId }); document.getElementById('gradeInput').value = ''; const sName = document.getElementById('lblSelectedStudentName').innerText; const sClass = document.getElementById('selectedStudentClassLbl').innerText; selectStudentForGrades(currentGradeStudentId, sName, sClass); }
+function generateBoletimPDF() { if(!currentGradeStudentId) return alert("Selecione um aluno primeiro."); if(typeof window.jspdf === 'undefined') return alert("Biblioteca PDF carregando, tente novamente em 1 segundo."); const { jsPDF } = window.jspdf; const doc = new jsPDF(); const period = document.getElementById('viewGradePeriodSelect').value; const periodLabel = period === 'ALL' ? 'Todos os Períodos' : period; const schoolLabel = document.getElementById('userSchoolDisplay').innerText; doc.setFontSize(22); doc.setTextColor(37, 99, 235); doc.text("IsCoolar", 14, 20); doc.setFontSize(14); doc.setTextColor(50, 50, 50); doc.text("Boletim Escolar Oficial", 14, 30); doc.setFontSize(11); doc.setTextColor(100, 100, 100); doc.text(`Instituição: ${schoolLabel}`, 14, 40); doc.text(`Aluno: ${currentGradeStudentName}`, 14, 46); doc.text(`Turma: ${currentGradeStudentClass}`, 14, 52); doc.text(`Período Visualizado: ${periodLabel}`, 14, 58); let bodyData = []; let gradesToPrint = currentStudentGrades; if(period !== 'ALL') gradesToPrint = gradesToPrint.filter(g => g.period === period); gradesToPrint.forEach(g => { bodyData.push([g.subject, g.period || '-', g.value.toFixed(1), currentStudentFaltas]); }); if(bodyData.length === 0) { bodyData.push([{content: 'Nenhuma nota registrada neste período.', colSpan: 4, styles: {halign: 'center', textColor: 150}}]); } doc.autoTable({ startY: 65, head: [['Disciplina', 'Período de Avaliação', 'Nota Final', 'Faltas (Total)']], body: bodyData, theme: 'grid', headStyles: { fillColor: [37, 99, 235], fontSize: 11 }, bodyStyles: { fontSize: 10, textColor: 50 }, columnStyles: { 2: { halign: 'center', fontStyle: 'bold' }, 3: { halign: 'center' } } }); doc.setFontSize(9); doc.setTextColor(150, 150, 150); const dateStr = new Date().toLocaleDateString('pt-BR'); doc.text(`Gerado via Plataforma IsCoolar em ${dateStr}.`, 14, doc.lastAutoTable.finalY + 10); doc.save(`Boletim_${currentGradeStudentName.replace(/\s+/g, '_')}.pdf`); }
 
-function renderGradesTable() {
-    const tbody = document.getElementById('gradesTable'); 
-    const periodFilter = document.getElementById('viewGradePeriodSelect').value;
+// ==========================================
+// CHAMADA (FREQUÊNCIA LOTE) E EVENTOS
+// ==========================================
+async function loadAttendanceInit() { 
+    document.getElementById('attendanceDate').valueAsDate = new Date(); 
+    const isParent = currentUser.role === 'parent';
     
-    let grades = currentStudentGrades;
-    if(periodFilter !== 'ALL') grades = grades.filter(g => g.period === periodFilter);
-
-    tbody.innerHTML = ''; 
-    if(grades.length === 0) { tbody.innerHTML = '<tr><td colspan="4" class="text-center py-4 text-gray-400">Nenhuma nota lançada para este período.</td></tr>'; return; } 
-    
-    grades.forEach(g => { 
-        let c = g.value >= 7 ? 'text-green-600' : 'text-red-600'; 
-        const btnDelete = (currentUser.role === 'director' || currentUser.role === 'coordinator' || currentUser.role === 'teacher') ? `<button onclick="openDeleteModal('${g.id}', 'grade')" class="ml-2 text-red-400 hover:text-red-600"><i class="ph ph-trash"></i></button>` : ''; 
-        const displayPeriod = g.period || g.date; 
-        // Adicionada a coluna de Faltas dinamicamente
-        tbody.innerHTML += `<tr><td class="py-2">${g.subject}</td><td class="py-2 text-gray-500 font-medium">${displayPeriod}</td><td class="py-2 text-center text-gray-500 font-bold">${currentStudentFaltas}</td><td class="py-2 text-right font-black ${c}">${g.value.toFixed(1)} ${btnDelete}</td></tr>`; 
-    }); 
+    if (isParent) {
+        document.getElementById('attendanceFormContainer').classList.add('hidden');
+        document.getElementById('attendanceReportTitle').innerText = 'Meu Relatório de Faltas';
+        loadParentAttendance();
+    } else {
+        document.getElementById('attendanceFormContainer').classList.remove('hidden');
+        document.getElementById('attendanceReportTitle').innerText = 'Relatório Geral da Turma (Faltas)';
+        let classes = await getFilteredData('classes', 'name');
+        if (currentUser.role === 'coordinator' || currentUser.role === 'teacher') {
+            if (currentUser.class_name) {
+                const myClasses = currentUser.class_name.split(', ');
+                classes = classes.filter(c => myClasses.includes(c.name));
+            } else { classes = []; }
+        }
+        const sel = document.getElementById('attendanceClassSelect');
+        if(sel) sel.innerHTML = '<option value="" disabled selected>Selecione a Turma...</option>' + classes.map(c => `<option value="${c.name}">${c.name}</option>`).join('');
+    }
 }
 
-async function addGrade(e) { e.preventDefault(); const subject = document.getElementById('gradeSubjectSelect').value; const period = document.getElementById('gradePeriodSelect').value; const value = parseFloat(document.getElementById('gradeInput').value); const date = new Date().toLocaleDateString('pt-BR'); if(!currentGradeStudentId) return; const schId = currentUser.role === 'admin' ? currentAdminSchoolId : currentUser.school_id; await db.collection('grades').add({ student_id: currentGradeStudentId, subject, period, value, date, school_id: schId }); document.getElementById('gradeInput').value = ''; const sName = document.getElementById('lblSelectedStudentName').innerText; const sClass = document.getElementById('selectedStudentClassLbl').innerText; selectStudentForGrades(currentGradeStudentId, sName, sClass); }
+async function loadAttendanceClass() { 
+    const date = document.getElementById('attendanceDate').value; 
+    const className = document.getElementById('attendanceClassSelect').value;
+    if(!date || !className) return; 
+    
+    const list = document.getElementById('attendanceListForm'); 
+    list.innerHTML = '<div class="text-center p-3 text-xs text-gray-500">Carregando alunos...</div>'; 
+    list.classList.remove('hidden'); document.getElementById('btnSaveAttendance').classList.add('hidden');
+    
+    let stds = await getFilteredData('students', 'name'); stds = stds.filter(s => s.class_name === className); 
+    let att = await getFilteredData('attendance'); let todayAtt = att.filter(a => a.date === date);
 
-// GERAÇÃO DE BOLETIM PDF COM JSPDF E AUTOTABLE
-function generateBoletimPDF() {
-    if(!currentGradeStudentId) return alert("Selecione um aluno primeiro.");
-    if(typeof window.jspdf === 'undefined') return alert("Biblioteca PDF carregando, tente novamente em 1 segundo.");
-    
-    const { jsPDF } = window.jspdf;
-    const doc = new jsPDF();
-    
-    const period = document.getElementById('viewGradePeriodSelect').value;
-    const periodLabel = period === 'ALL' ? 'Todos os Períodos' : period;
-    const schoolLabel = document.getElementById('userSchoolDisplay').innerText;
-    
-    doc.setFontSize(22);
-    doc.setTextColor(37, 99, 235); // Tailwind blue-600
-    doc.text("IsCoolar", 14, 20);
-    
-    doc.setFontSize(14);
-    doc.setTextColor(50, 50, 50);
-    doc.text("Boletim Escolar Oficial", 14, 30);
-    
-    doc.setFontSize(11);
-    doc.setTextColor(100, 100, 100);
-    doc.text(`Instituição: ${schoolLabel}`, 14, 40);
-    doc.text(`Aluno: ${currentGradeStudentName}`, 14, 46);
-    doc.text(`Turma: ${currentGradeStudentClass}`, 14, 52);
-    doc.text(`Período Visualizado: ${periodLabel}`, 14, 58);
-    
-    let bodyData = [];
-    let gradesToPrint = currentStudentGrades;
-    if(period !== 'ALL') gradesToPrint = gradesToPrint.filter(g => g.period === period);
-    
-    gradesToPrint.forEach(g => {
-        bodyData.push([g.subject, g.period || '-', g.value.toFixed(1), currentStudentFaltas]);
-    });
-    
-    if(bodyData.length === 0) {
-        bodyData.push([{content: 'Nenhuma nota registrada neste período.', colSpan: 4, styles: {halign: 'center', textColor: 150}}]);
-    }
+    list.innerHTML = ''; 
+    if(stds.length === 0) { list.innerHTML = '<div class="text-center p-3 text-xs text-gray-500">Nenhum aluno nesta turma.</div>'; return; }
 
-    doc.autoTable({
-        startY: 65,
-        head: [['Disciplina', 'Período de Avaliação', 'Nota Final', 'Faltas (Total)']],
-        body: bodyData,
-        theme: 'grid',
-        headStyles: { fillColor: [37, 99, 235], fontSize: 11 },
-        bodyStyles: { fontSize: 10, textColor: 50 },
-        columnStyles: {
-            2: { halign: 'center', fontStyle: 'bold' },
-            3: { halign: 'center' }
+    stds.forEach(s => { 
+        let myRecord = todayAtt.find(a => a.student_id === s.id);
+        let isP = myRecord && myRecord.status === 'Presente' ? 'checked' : '';
+        let isF = myRecord && myRecord.status === 'Falta' ? 'checked' : '';
+        list.innerHTML += `<div class="attendance-row flex justify-between items-center bg-white p-2.5 rounded-xl border border-gray-100 shadow-sm" data-id="${s.id}"><span class="font-bold text-gray-800 text-xs">${s.name}</span><div class="flex gap-3 bg-gray-50 p-1 rounded-lg border"><label class="flex items-center gap-1 cursor-pointer px-2 py-1 hover:bg-green-100 rounded transition text-green-700 font-bold text-xs"><input type="radio" name="att_${s.id}" value="Presente" ${isP} class="w-3 h-3 accent-green-600"> P</label><label class="flex items-center gap-1 cursor-pointer px-2 py-1 hover:bg-red-100 rounded transition text-red-700 font-bold text-xs"><input type="radio" name="att_${s.id}" value="Falta" ${isF} class="w-3 h-3 accent-red-600"> F</label></div></div>`; 
+    }); 
+    document.getElementById('btnSaveAttendance').classList.remove('hidden'); loadStaffAttendanceReport(className);
+}
+
+async function saveBulkAttendance() {
+    const date = document.getElementById('attendanceDate').value; const className = document.getElementById('attendanceClassSelect').value;
+    if(!date || !className) return;
+    const btn = document.getElementById('btnSaveAttendance'); const origText = btn.innerText; btn.innerHTML = 'Salvando...';
+
+    const schId = currentUser.role === 'admin' ? currentAdminSchoolId : currentUser.school_id;
+    const studentRows = document.querySelectorAll('.attendance-row');
+    let existing = await getFilteredData('attendance'); existing = existing.filter(a => a.date === date);
+
+    const batch = db.batch();
+    studentRows.forEach(row => {
+        const stId = row.getAttribute('data-id'); const statusNode = row.querySelector(`input[name="att_${stId}"]:checked`);
+        if(statusNode) {
+            const status = statusNode.value; const record = existing.find(a => a.student_id === stId);
+            if (record) { if (record.status !== status) batch.update(db.collection('attendance').doc(record.id), { status }); } 
+            else { const newRef = db.collection('attendance').doc(); batch.set(newRef, { student_id: stId, date, status, school_id: schId }); }
         }
     });
     
-    doc.setFontSize(9);
-    doc.setTextColor(150, 150, 150);
-    const dateStr = new Date().toLocaleDateString('pt-BR');
-    doc.text(`Gerado via Plataforma IsCoolar em ${dateStr}.`, 14, doc.lastAutoTable.finalY + 10);
-
-    doc.save(`Boletim_${currentGradeStudentName.replace(/\s+/g, '_')}.pdf`);
+    await batch.commit(); btn.innerHTML = origText; alert("Chamada registrada com sucesso!"); loadStaffAttendanceReport(className);
 }
 
-// FREQUÊNCIA E EVENTOS
-async function loadAttendanceInit() { document.getElementById('attendanceDate').valueAsDate = new Date(); }
-async function loadAttendanceClass() { const date=document.getElementById('attendanceDate').value; if(!date) return; const list=document.getElementById('attendanceListForm'); list.innerHTML=''; list.classList.remove('hidden'); let stds=await getFilteredData('students'); stds=stds.filter(s=>s.class_name===currentUser.class_name); stds.forEach(s => { list.innerHTML+=`<div class="flex justify-between items-center bg-white p-2 rounded border"><span class="font-medium text-gray-800">${s.name}</span><div class="flex gap-2"><button onclick="saveAttendance('${s.id}','${date}','Presente', this)" class="px-3 py-1 rounded bg-gray-200 hover:bg-green-500 hover:text-white transition text-xs font-bold">P</button><button onclick="saveAttendance('${s.id}','${date}','Falta', this)" class="px-3 py-1 rounded bg-gray-200 hover:bg-red-500 hover:text-white transition text-xs font-bold">F</button></div></div>`; }); }
-async function saveAttendance(stId, date, status, btn) { const schId = currentUser.role === 'admin' ? currentAdminSchoolId : currentUser.school_id; await db.collection('attendance').add({student_id:stId, date, status, school_id:schId}); btn.parentNode.innerHTML = `<span class="text-[10px] font-bold ${status==='Presente'?'text-green-600':'text-red-600'}">${status}</span>`; }
+async function loadStaffAttendanceReport(className) {
+    const list = document.getElementById('attendanceReportList'); list.innerHTML = '<li class="text-xs text-gray-400">Calculando...</li>';
+    let stds = await getFilteredData('students', 'name'); stds = stds.filter(s => s.class_name === className);
+    let att = await getFilteredData('attendance');
+    list.innerHTML = ''; if(stds.length === 0) { list.innerHTML = '<li class="text-xs text-gray-400">Sem alunos.</li>'; return; }
+    stds.forEach(s => { let faltas = att.filter(a => a.student_id === s.id && a.status === 'Falta').length; list.innerHTML += `<li class="p-3 border-b flex justify-between items-center text-xs"><span class="font-bold text-gray-700">${s.name}</span><span class="bg-gray-100 px-3 py-1 rounded-lg font-black ${faltas > 0 ? 'text-red-600' : 'text-green-600'}">${faltas} Faltas</span></li>`; });
+}
+
 async function loadParentAttendance() { const list=document.getElementById('attendanceReportList'); list.innerHTML=''; let att=await getFilteredData('attendance'); att=att.filter(a=>a.student_id===currentUser.child_id); if(att.length===0) list.innerHTML='<li class="text-gray-400 py-4 text-center">Nenhum registro de falta.</li>'; else att.forEach(a=>{ list.innerHTML+=`<li class="p-3 border rounded-lg bg-gray-50 flex justify-between"><span>${a.date.split('-').reverse().join('/')}</span><span class="font-bold ${a.status==='Presente'?'text-green-600':'text-red-600'}">${a.status}</span></li>`; }); }
+
 async function loadEvents() { const list=document.getElementById('eventsList')||document.getElementById('parentEventsList'); if(!list) return; list.innerHTML=''; let evs=await getFilteredData('events', 'event_date'); loadedEvents=evs; evs.forEach(e => { const d=e.event_date.split('-').reverse().join('/'); const canManage = (currentUser.role==='director'||currentUser.role==='coordinator'||currentUser.role==='admin'); const actions = canManage ? `<button onclick="startEditEvent('${e.id}')" title="Editar" class="text-blue-500 hover:bg-blue-50 p-1.5 rounded"><i class="ph ph-pencil-simple text-lg"></i></button><button onclick="openDeleteModal('${e.id}', 'event')" title="Excluir" class="text-red-500 hover:bg-red-50 p-1.5 rounded"><i class="ph ph-trash text-lg"></i></button>` : ''; list.innerHTML+=`<div class="p-3 border rounded-xl bg-white shadow-sm flex justify-between items-center mb-2 fade-in"><div class="flex gap-4"><div class="bg-emerald-50 text-emerald-800 rounded-lg p-2 text-center w-14 shrink-0 font-bold text-xs">${d.substring(0,5)}<br><span class="text-[9px] font-normal text-gray-400">${e.event_time||''}</span></div><div class="flex-grow"><strong class="text-gray-800 block text-xs">${e.title}</strong><p class="text-[10px] text-gray-500 leading-tight">${e.description||''}</p></div></div><div class="flex gap-1">${actions}</div></div>`; }); }
 async function handleEventSubmit(e) { e.preventDefault(); const t=document.getElementById('eventTitleInput').value.trim(); const d=document.getElementById('eventDateInput').value; const h=document.getElementById('eventTimeInput').value; const c=document.getElementById('eventDescInput').value.trim(); const schId = currentUser.role === 'admin' ? currentAdminSchoolId : currentUser.school_id; try { if(editingEventId === null) { await db.collection('events').add({title:t, event_date:d, event_time:h, description:c, school_id:schId}); alert("Evento agendado com sucesso!"); } else { await db.collection('events').doc(editingEventId).update({title:t, event_date:d, event_time:h, description:c}); alert("Evento atualizado com sucesso!"); } cancelEventEdit(); loadEvents(); } catch (err) { alert("Erro ao salvar o evento."); } }
 function startEditEvent(id) { const ev = loadedEvents.find(x => x.id === id); if(!ev) return; editingEventId = id; document.getElementById('eventTitleInput').value = ev.title; document.getElementById('eventDateInput').value = ev.event_date; document.getElementById('eventTimeInput').value = ev.event_time || ''; document.getElementById('eventDescInput').value = ev.description || ''; document.getElementById('eventFormTitle').innerHTML = `<i class="ph ph-pencil-simple"></i> Editar Evento`; document.getElementById('submitEventBtn').innerText = 'Atualizar Evento'; document.getElementById('btnCancelEvent').classList.remove('hidden'); document.getElementById('eventFormContainer').scrollIntoView({behavior: 'smooth', block: 'start'}); }
 function cancelEventEdit() { editingEventId = null; document.getElementById('eventForm').reset(); document.getElementById('eventFormTitle').innerHTML = `<i class="ph ph-calendar-plus"></i> Agendar Evento`; document.getElementById('submitEventBtn').innerText = 'Salvar'; document.getElementById('btnCancelEvent').classList.add('hidden'); }
 
 // ==========================================
-// MURAL CHAT
+// CHAT - ESTILO WHATSAPP/TELEGRAM
 // ==========================================
+async function renderChatContacts() {
+    const list = document.getElementById('chatContactsList'); if(!list) return;
+    let users = await getFilteredData('users', 'name'); let classes = await getFilteredData('classes', 'name'); let students = await getFilteredData('students');
+    let myClasses = [];
+    if (currentUser.role === 'teacher' || currentUser.role === 'coordinator') { if (currentUser.class_name) myClasses = currentUser.class_name.split(', '); } 
+    else if (currentUser.role === 'parent') { let childIds = String(currentUser.child_id).split(',').map(s=>s.trim()); let myChildren = students.filter(s => childIds.includes(String(s.id))); myClasses = myChildren.map(c => c.class_name); }
+
+    let html = '';
+    const createItem = (id, type, name, subText, avatar) => { return `<div onclick="openChat('${id}', '${type}', '${name.replace(/'/g, "\\'")}', '${avatar}')" data-name="${name.toLowerCase()}" class="chat-contact-item flex items-center gap-3 p-3 cursor-pointer hover:bg-gray-50 border-b border-gray-50 transition"><img src="${avatar}" class="w-10 h-10 rounded-full object-cover bg-gray-200 shrink-0 border border-gray-100"><div class="flex-grow overflow-hidden"><h4 class="text-xs font-bold text-gray-800 truncate">${name}</h4><p class="text-[10px] text-gray-500 truncate">${subText}</p></div></div>`; };
+
+    if (currentUser.role === 'director') {
+        html += `<div class="bg-gray-100 text-[10px] font-bold text-gray-500 uppercase px-3 py-1 mt-2">Grupos Escolares</div>`;
+        html += createItem('SCOPE_ALL', 'GROUP', 'Todos da Escola', 'Avisos Gerais', generateGroupAvatar('Escola'));
+        if(classes.length > 0) classes.forEach(c => html += createItem(`CLASS_${c.name}`, 'GROUP', `Turma ${c.name}`, 'Alunos e Professores', generateGroupAvatar(c.name)));
+        html += `<div class="bg-gray-100 text-[10px] font-bold text-gray-500 uppercase px-3 py-1 mt-2">Contatos Individuais</div>`;
+        users.filter(u => u.id !== currentUser.id && u.role !== 'admin').forEach(u => html += createItem(`USER_${u.id}`, 'USER', u.name, roleLabels[u.role] || u.role, u.avatar_url || generateAvatar(u.name, u.role)));
+    } 
+    else if (currentUser.role === 'coordinator') {
+        html += `<div class="bg-gray-100 text-[10px] font-bold text-gray-500 uppercase px-3 py-1 mt-2">Grupos Escolares</div>`;
+        html += createItem('SCOPE_ALL', 'GROUP', 'Minhas Turmas e Equipe', 'Avisos Gerais', generateGroupAvatar('Coordenação'));
+        if(myClasses.length > 0) myClasses.forEach(c => html += createItem(`CLASS_${c}`, 'GROUP', `Turma ${c}`, 'Alunos e Professores', generateGroupAvatar(c)));
+        html += `<div class="bg-gray-100 text-[10px] font-bold text-gray-500 uppercase px-3 py-1 mt-2">Equipe e Pais</div>`;
+        users.filter(u => u.id !== currentUser.id && ['director', 'coordinator', 'teacher'].includes(u.role)).forEach(u => html += createItem(`USER_${u.id}`, 'USER', u.name, roleLabels[u.role], u.avatar_url || generateAvatar(u.name, u.role)));
+        let myStudents = students.filter(s => myClasses.includes(s.class_name)); let myStudentIds = myStudents.map(s => s.id);
+        users.filter(u => u.role === 'parent' && myStudentIds.includes(u.child_id) && u.id !== currentUser.id).forEach(u => html += createItem(`USER_${u.id}`, 'USER', u.name, 'Responsável', u.avatar_url || generateAvatar(u.name, u.role)));
+    }
+    else if (currentUser.role === 'teacher') {
+        if(myClasses.length > 0) { html += `<div class="bg-gray-100 text-[10px] font-bold text-gray-500 uppercase px-3 py-1 mt-2">Grupos Escolares</div>`; myClasses.forEach(c => html += createItem(`CLASS_${c}`, 'GROUP', `Turma ${c}`, 'Avisos para a sala', generateGroupAvatar(c))); }
+        html += `<div class="bg-gray-100 text-[10px] font-bold text-gray-500 uppercase px-3 py-1 mt-2">Equipe e Pais</div>`;
+        users.filter(u => u.id !== currentUser.id && ['director', 'coordinator', 'teacher'].includes(u.role)).forEach(u => html += createItem(`USER_${u.id}`, 'USER', u.name, roleLabels[u.role], u.avatar_url || generateAvatar(u.name, u.role)));
+        let myStudents = students.filter(s => myClasses.includes(s.class_name)); let myStudentIds = myStudents.map(s => s.id);
+        users.filter(u => u.role === 'parent' && myStudentIds.includes(u.child_id) && u.id !== currentUser.id).forEach(u => html += createItem(`USER_${u.id}`, 'USER', u.name, 'Responsável', u.avatar_url || generateAvatar(u.name, u.role)));
+    }
+    else if (currentUser.role === 'parent') {
+        html += `<div class="bg-gray-100 text-[10px] font-bold text-gray-500 uppercase px-3 py-1 mt-2">Contatos da Escola</div>`;
+        let allowedStaff = users.filter(u => u.id !== currentUser.id && (u.role === 'director' || (['coordinator', 'teacher'].includes(u.role) && u.class_name && myClasses.some(mc => u.class_name.includes(mc)))));
+        allowedStaff.forEach(u => html += createItem(`USER_${u.id}`, 'USER', u.name, roleLabels[u.role], u.avatar_url || generateAvatar(u.name, u.role)));
+    }
+    list.innerHTML = html;
+}
+
+function filterChatContacts() { const term = document.getElementById('chatSearchInput').value.toLowerCase(); document.querySelectorAll('.chat-contact-item').forEach(el => { const name = el.getAttribute('data-name'); el.style.display = name.includes(term) ? '' : 'none'; }); }
+
+function openChat(id, type, name, avatar) {
+    activeChatId = id; activeChatType = type; activeChatName = name; activeChatAvatar = avatar;
+    document.getElementById('activeChatName').innerText = name; document.getElementById('activeChatStatus').innerText = type === 'GROUP' ? 'Chat em Grupo' : 'Chat Privado'; document.getElementById('activeChatAvatar').src = avatar; document.getElementById('chatInputArea').classList.remove('hidden');
+    if (window.innerWidth < 768) { document.getElementById('chatSidebar').classList.add('hidden'); document.getElementById('chatArea').classList.remove('hidden'); document.getElementById('chatArea').classList.add('flex'); }
+    loadChat();
+}
+
+function closeChatAreaMobile() { document.getElementById('chatSidebar').classList.remove('hidden'); document.getElementById('chatArea').classList.add('hidden'); document.getElementById('chatArea').classList.remove('flex'); activeChatId = null; }
+
 function handleFileSelection() { 
     const fileInput = document.getElementById('chatFileInput'); 
     if (fileInput && fileInput.files.length > 0) { 
         const file = fileInput.files[0];
         if (file.size > 1.5 * 1024 * 1024) { alert("O arquivo é muito grande. O limite máximo é de 1.5MB."); clearFileSelection(); return; }
-        selectedFileName = file.name; 
-        document.getElementById('fileNameDisplay').innerText = selectedFileName; 
-        document.getElementById('clearFileBtn').classList.remove('hidden'); 
+        selectedFileName = file.name; document.getElementById('fileNameDisplay').innerText = selectedFileName; document.getElementById('chatAttachmentPreview').classList.remove('hidden'); 
         const reader = new FileReader(); reader.onload = function(e) { selectedFileBase64 = e.target.result; }; reader.readAsDataURL(file);
     } 
 }
 
-function clearFileSelection() { 
-    selectedFileName = null; selectedFileBase64 = null; 
-    if(document.getElementById('chatFileInput')) document.getElementById('chatFileInput').value = ''; 
-    document.getElementById('fileNameDisplay').innerText = 'Anexar Documento'; 
-    document.getElementById('clearFileBtn').classList.add('hidden'); 
-}
+function clearFileSelection() { selectedFileName = null; selectedFileBase64 = null; if(document.getElementById('chatFileInput')) document.getElementById('chatFileInput').value = ''; document.getElementById('chatAttachmentPreview').classList.add('hidden'); }
 
 async function sendMessage(e) { 
     e.preventDefault(); 
     try {
-        const input = document.getElementById('chatMessageInput'); 
-        if(!input) return; 
-        const text = input.value.trim(); 
-        if (!text && !selectedFileName) return; 
-        
+        const input = document.getElementById('chatMessageInput'); if(!input || !activeChatId) return; const text = input.value.trim(); if (!text && !selectedFileName) return; 
         const schId = currentUser.role === 'admin' ? currentAdminSchoolId : currentUser.school_id; 
-        const btn = e.target.querySelector('button[type="submit"]'); const origHTML = btn.innerHTML; btn.innerHTML = '<span class="loader border-t-white w-4 h-4"></span>';
+        const btn = document.getElementById('btnSendMessage'); const origHTML = btn.innerHTML; btn.innerHTML = '<span class="loader border-t-white w-4 h-4"></span>';
         
-        const p = { sender_name: currentUser.name, sender_role: currentUser.role, message_text: text, file_name: selectedFileName || null, file_data: selectedFileBase64 || null, timestamp: Date.now(), school_id: schId, is_edited: false, is_deleted: false }; 
-        input.value = ''; clearFileSelection();
-        await db.collection('messages').add(p); 
-        await loadChat(); 
+        const p = { sender_id: currentUser.id, sender_name: currentUser.name, sender_role: currentUser.role, sender_avatar: currentUser.avatar_url, sender_classes: currentUser.class_name || '', recipient: activeChatId, message_text: text, file_name: selectedFileName || null, file_data: selectedFileBase64 || null, timestamp: Date.now(), school_id: schId, is_edited: false, is_deleted: false }; 
+        input.value = ''; clearFileSelection(); await db.collection('messages').add(p); await loadChat(); btn.innerHTML = origHTML;
     } catch(err) { console.error(err); alert("Erro ao enviar mensagem."); }
 }
 
-function downloadRealAttachment(msgId, fileName) {
-    const base64Data = window.chatAttachments[msgId];
-    if(!base64Data) { alert("O arquivo não está disponível ou foi corrompido."); return; }
-    const a = document.createElement('a'); a.href = base64Data; a.download = fileName; document.body.appendChild(a); a.click(); document.body.removeChild(a);
-}
+function downloadRealAttachment(msgId, fileName) { const base64Data = window.chatAttachments[msgId]; if(!base64Data) { alert("O arquivo não está disponível ou foi corrompido."); return; } const a = document.createElement('a'); a.href = base64Data; a.download = fileName; document.body.appendChild(a); a.click(); document.body.removeChild(a); }
 
-async function editChatMessage(id) {
-    const msg = loadedMessages.find(x => x.id === id); if(!msg) return;
-    const newText = prompt("Edite sua mensagem:", msg.message_text);
-    if(newText !== null && newText.trim() !== "" && newText !== msg.message_text) {
-        try { await db.collection('messages').doc(id).update({ message_text: newText.trim(), is_edited: true }); loadChat(); } 
-        catch(e) { alert("Erro ao editar a mensagem."); }
-    }
-}
+async function editChatMessage(id) { const msg = loadedMessages.find(x => x.id === id); if(!msg) return; const newText = prompt("Edite sua mensagem:", msg.message_text); if(newText !== null && newText.trim() !== "" && newText !== msg.message_text) { try { await db.collection('messages').doc(id).update({ message_text: newText.trim(), is_edited: true }); loadChat(); } catch(e) { alert("Erro ao editar."); } } }
 
-async function deleteChatMessage(id) {
-    if(confirm("Deseja realmente apagar esta mensagem para todos?")) {
-        try { await db.collection('messages').doc(id).update({ message_text: "🚫 Mensagem apagada pelo autor.", file_name: null, file_data: null, is_deleted: true }); loadChat(); } 
-        catch(e) { alert("Erro ao apagar a mensagem."); }
-    }
-}
+async function deleteChatMessage(id) { if(confirm("Deseja apagar esta mensagem para todos?")) { try { await db.collection('messages').doc(id).update({ message_text: "🚫 Mensagem apagada pelo autor.", file_name: null, file_data: null, is_deleted: true }); loadChat(); } catch(e) { alert("Erro ao apagar."); } } }
 
 async function loadChat() { 
-    const box = document.getElementById('chatMessagesBox'); if(!box) return; box.innerHTML = ''; 
-    window.chatAttachments = {}; 
-    let msgs = await getFilteredData('messages', 'timestamp'); 
-    loadedMessages = msgs; 
+    const box = document.getElementById('chatMessagesBox'); if(!box || !activeChatId) return; 
+    box.innerHTML = ''; window.chatAttachments = {}; let msgs = await getFilteredData('messages', 'timestamp'); 
     
+    msgs = msgs.filter(m => {
+        if (activeChatType === 'GROUP') { return m.recipient === activeChatId; } 
+        else if (activeChatType === 'USER') { const targetUserId = activeChatId.replace('USER_', ''); return (m.sender_id === currentUser.id && m.recipient === activeChatId) || (m.sender_id === targetUserId && m.recipient === `USER_${currentUser.id}`); }
+        return false;
+    });
+
+    loadedMessages = msgs; 
+    if(msgs.length === 0) { box.innerHTML = `<div class="absolute inset-0 flex items-center justify-center"><div class="bg-white/80 backdrop-blur px-6 py-3 rounded-full shadow-sm text-xs font-medium text-gray-500">Envie a primeira mensagem para começar a conversa.</div></div>`; }
+
     msgs.forEach(m => { 
-        const isMe = m.sender_name === currentUser.name; 
-        const bubbleClass = isMe ? 'ml-auto bg-purple-600 text-white' : 'mr-auto bg-white text-gray-800 border shadow-sm'; 
+        const isMe = m.sender_id === currentUser.id; 
+        const bubbleClass = isMe ? 'bg-[#d9fdd3] text-gray-800 ml-auto rounded-tr-none' : 'bg-white text-gray-800 mr-auto rounded-tl-none'; 
         const labelRole = roleLabels[m.sender_role] || 'Usuário'; 
+        const avatarToUse = m.sender_avatar || generateAvatar(m.sender_name, m.sender_role);
         
         let attachmentHtml = '';
-        if(m.file_name && !m.is_deleted) {
-            if(m.file_data) window.chatAttachments[m.id] = m.file_data;
-            attachmentHtml = `<div onclick="downloadRealAttachment('${m.id}', '${m.file_name}')" class="mt-2 p-2 rounded-xl bg-black/10 hover:bg-black/20 transition text-[11px] cursor-pointer flex items-center gap-1.5 font-medium border border-black/5" title="Baixar anexo"><i class="ph ph-paperclip text-sm shrink-0"></i><span class="truncate flex-grow text-left">${m.file_name}</span><i class="ph ph-download text-xs shrink-0 opacity-70"></i></div>`; 
-        }
+        if(m.file_name && !m.is_deleted) { if(m.file_data) window.chatAttachments[m.id] = m.file_data; attachmentHtml = `<div onclick="downloadRealAttachment('${m.id}', '${m.file_name}')" class="mt-2 p-2 rounded-lg bg-black/5 hover:bg-black/10 transition text-[11px] cursor-pointer flex items-center gap-1.5 font-medium border border-black/5" title="Baixar anexo"><i class="ph ph-file-text text-sm shrink-0 opacity-70"></i><span class="truncate flex-grow text-left">${m.file_name}</span><i class="ph ph-download text-xs shrink-0 opacity-70"></i></div>`; }
         
         const editedLabel = m.is_edited && !m.is_deleted ? '<span class="text-[9px] italic opacity-60 ml-2">(editada)</span>' : '';
         const displayText = m.is_deleted ? `<i class="ph ph-prohibit align-middle"></i> Mensagem apagada pelo autor.` : (m.message_text || '');
-        const textClass = m.is_deleted ? 'italic opacity-70' : '';
+        const textClass = m.is_deleted ? 'italic opacity-60' : '';
 
-        const actions = (isMe && !m.is_deleted) ? `
-            <div class="flex justify-end gap-2 mt-1 border-t border-black/10 pt-1">
-                <button onclick="editChatMessage('${m.id}')" title="Editar" class="opacity-60 hover:opacity-100 transition"><i class="ph ph-pencil-simple text-sm"></i></button>
-                <button onclick="deleteChatMessage('${m.id}')" title="Apagar" class="opacity-60 hover:opacity-100 transition"><i class="ph ph-trash text-sm"></i></button>
-            </div>
-        ` : '';
+        const actions = (isMe && !m.is_deleted) ? `<div class="flex justify-end gap-2 mt-1 pt-1 opacity-0 group-hover:opacity-100 transition absolute right-2 top-1"><button onclick="editChatMessage('${m.id}')" title="Editar" class="text-gray-400 hover:text-blue-500 bg-white/80 rounded p-0.5 shadow-sm"><i class="ph ph-pencil-simple text-xs"></i></button><button onclick="deleteChatMessage('${m.id}')" title="Apagar" class="text-gray-400 hover:text-red-500 bg-white/80 rounded p-0.5 shadow-sm"><i class="ph ph-trash text-xs"></i></button></div>` : '';
 
-        box.innerHTML += `<div class="max-w-[85%] p-3 rounded-2xl text-xs ${bubbleClass} mb-2 fade-in">
-            <span class="text-[10px] font-bold block mb-1 uppercase tracking-wide opacity-70 flex justify-between items-center">
-                <span>${m.sender_name} (${labelRole})</span>
-            </span>
-            <p class="leading-relaxed whitespace-pre-wrap ${textClass}">${displayText}${editedLabel}</p>
-            ${attachmentHtml}
-            ${actions}
-        </div>`; 
+        let msgHtml = '';
+        const timeStr = new Date(m.timestamp).toLocaleTimeString('pt-BR', {hour: '2-digit', minute:'2-digit'});
+
+        if (isMe) {
+            msgHtml = `<div class="flex justify-end mb-2 w-full fade-in group relative"><div class="max-w-[85%] p-2.5 rounded-2xl shadow-sm text-xs relative ${bubbleClass}"><p class="leading-relaxed whitespace-pre-wrap pr-10 ${textClass}">${displayText}</p>${attachmentHtml}<span class="text-[9px] text-gray-500 float-right mt-1 ml-2">${timeStr}${editedLabel}</span>${actions}</div></div>`;
+        } else {
+            msgHtml = `<div class="flex justify-start mb-2 w-full fade-in"><img src="${avatarToUse}" class="w-8 h-8 rounded-full border border-gray-200 bg-white mr-2 mt-auto shrink-0 object-cover"><div class="max-w-[80%] p-2.5 rounded-2xl shadow-sm text-xs relative ${bubbleClass}"><span class="text-[10px] font-bold block mb-0.5 ${m.sender_role === 'director' ? 'text-red-500' : 'text-blue-500'}">${m.sender_name} <span class="font-normal text-gray-400 text-[9px]">(${labelRole})</span></span><p class="leading-relaxed whitespace-pre-wrap pr-10 ${textClass}">${displayText}</p>${attachmentHtml}<span class="text-[9px] text-gray-400 float-right mt-1 ml-2">${timeStr}${editedLabel}</span></div></div>`;
+        }
+        box.innerHTML += msgHtml; 
     }); 
     box.scrollTop = box.scrollHeight; 
 }
 
-// ==========================================
-// EXCLUSÃO GERAL DO SISTEMA
-// ==========================================
 function openDeleteModal(id, type) { deletingEventId = id; deleteType = type; document.getElementById('deleteModal').classList.remove('hidden'); }
 function closeDeleteModal() { deletingEventId = null; deleteType = null; document.getElementById('deleteModal').classList.add('hidden'); }
-async function executeDeleteEvent() {
-    const col = deleteType==='user'?'users':(deleteType==='student'?'students':(deleteType==='class'?'classes':(deleteType==='subject'?'subjects':(deleteType==='school'?'schools':(deleteType==='grade'?'grades':(deleteType==='global_subject'?'global_subjects':'events'))))));
-    if(deleteType==='user') { await db.collection('users').doc(deletingEventId).delete(); } else await db.collection(col).doc(deletingEventId).delete();
-    
-    closeDeleteModal(); 
-    if(deleteType==='event') loadEvents(); if(deleteType==='student') loadAdminStudents(); if(deleteType==='user') loadAdminStaff(); if(deleteType==='class') loadAdminClasses(); if(deleteType==='subject' || deleteType==='global_subject') loadAdminSubjects();
-    if(deleteType==='school') { loadAdminSchools(); populateAdminSchoolsDropdown(); }
-    if(deleteType==='grade') { const sName = document.getElementById('lblSelectedStudentName').innerText; const sClass = document.getElementById('selectedStudentClassLbl').innerText; selectStudentForGrades(currentGradeStudentId, sName, sClass); }
-}
+async function executeDeleteEvent() { const col = deleteType==='user'?'users':(deleteType==='student'?'students':(deleteType==='class'?'classes':(deleteType==='subject'?'subjects':(deleteType==='school'?'schools':(deleteType==='grade'?'grades':(deleteType==='global_subject'?'global_subjects':'events')))))); if(deleteType==='user') { await db.collection('users').doc(deletingEventId).delete(); } else await db.collection(col).doc(deletingEventId).delete(); closeDeleteModal(); if(deleteType==='event') loadEvents(); if(deleteType==='student') loadAdminStudents(); if(deleteType==='user') loadAdminStaff(); if(deleteType==='class') loadAdminClasses(); if(deleteType==='subject' || deleteType==='global_subject') loadAdminSubjects(); if(deleteType==='school') { loadAdminSchools(); populateAdminSchoolsDropdown(); } if(deleteType==='grade') { const sName = document.getElementById('lblSelectedStudentName').innerText; const sClass = document.getElementById('selectedStudentClassLbl').innerText; selectStudentForGrades(currentGradeStudentId, sName, sClass); } }

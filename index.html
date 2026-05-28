@@ -12,7 +12,15 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
 
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js"></script>
+
     <link rel="stylesheet" href="style.css">
+    
+    <style>
+        /* Força a área de corte do Cropper a ser redonda */
+        .cropper-view-box, .cropper-face { border-radius: 50%; }
+    </style>
 </head>
 <body class="text-gray-800 h-screen flex bg-gray-50 select-none overflow-hidden">
 
@@ -40,7 +48,7 @@
             
             <div id="loginScreen" class="bg-white p-8 rounded-3xl shadow-xl w-full max-w-md mx-auto fade-in mt-10 md:mt-20 border">
                 <div class="flex justify-center mb-6">
-                    <img src="IsCoolar_Arte.png" alt="IsCoolar Logo" class="w-100 md:w-100 max-w-full h-auto object-contain drop-shadow-lg rounded-2xl transition-all">
+                    <img src="IsCoolar_Arte.png" alt="IsCoolar Logo" class="w-64 md:w-80 max-w-full h-auto object-contain drop-shadow-lg rounded-2xl transition-all">
                 </div>
                 <h2 class="text-2xl font-black text-center mb-1 text-gray-800">Acesso ao IsCoolar</h2>
                 <p class="text-center text-gray-500 mb-8 text-sm">Insira suas credenciais para continuar</p>
@@ -203,7 +211,6 @@
                         <div class="md:w-2/3 flex flex-col bg-white rounded-xl border shadow-sm overflow-hidden flex-grow min-h-[500px] md:h-full">
                             <div id="gradeFormContainer" class="p-4 border-b bg-gray-50 hidden shrink-0">
                                 <h4 class="text-xs font-bold text-blue-600 mb-2 uppercase tracking-wide">Lançar Nota: <span id="lblSelectedStudentName" class="text-gray-800"></span></h4>
-                                
                                 <form id="gradeForm" onsubmit="addGrade(event)" class="flex flex-col sm:flex-row gap-2 text-xs">
                                     <select id="gradeSubjectSelect" required class="flex-grow p-2 border rounded-md outline-none bg-white"></select>
                                     <select id="gradePeriodSelect" required class="p-2 border rounded-md outline-none bg-white"></select>
@@ -241,10 +248,21 @@
                 <div id="tab-attendance" class="view-panel hidden flex flex-col space-y-4">
                     <div id="attendanceFormContainer" class="bg-white p-4 rounded-2xl border shadow-sm">
                         <h3 class="text-xs font-bold text-indigo-600 uppercase mb-3"><i class="ph ph-list-checks"></i> Realizar Chamada Diária</h3>
-                        <div class="flex gap-2 text-xs mb-3"><input type="date" id="attendanceDate" class="p-2 border rounded-lg bg-gray-50 outline-none font-bold text-gray-600" required><button onclick="loadAttendanceClass()" class="bg-indigo-600 text-white px-4 rounded-lg font-bold">Carregar Turma</button></div>
-                        <div id="attendanceListForm" class="hidden space-y-2 max-h-64 overflow-y-auto border p-2 rounded-lg bg-gray-50/50"></div>
+                        
+                        <div class="flex flex-col sm:flex-row gap-2 text-xs mb-3">
+                            <input type="date" id="attendanceDate" onchange="loadAttendanceClass()" class="p-2 border rounded-lg bg-gray-50 outline-none font-bold text-gray-600" required>
+                            <select id="attendanceClassSelect" onchange="loadAttendanceClass()" class="p-2 border rounded-lg bg-white outline-none flex-grow font-bold text-gray-700 cursor-pointer"></select>
+                        </div>
+                        
+                        <div id="attendanceListForm" class="hidden space-y-2 max-h-64 overflow-y-auto border p-2 rounded-lg bg-gray-50/50 mb-3"></div>
+                        
+                        <button id="btnSaveAttendance" onclick="saveBulkAttendance()" class="hidden w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 rounded-xl transition shadow-sm">Salvar Chamada</button>
                     </div>
-                    <div class="bg-white rounded-2xl border flex-grow p-4 shadow-sm flex flex-col"><h3 class="text-xs font-bold uppercase text-gray-500 tracking-wider border-b pb-2 mb-2">Relatório de Faltas</h3><ul id="attendanceReportList" class="text-xs space-y-2 overflow-y-auto flex-grow"></ul></div>
+                    
+                    <div class="bg-white rounded-2xl border flex-grow p-4 shadow-sm flex flex-col min-h-[250px]">
+                        <h3 id="attendanceReportTitle" class="text-xs font-bold uppercase text-gray-500 tracking-wider border-b pb-2 mb-2">Relatório Geral de Faltas</h3>
+                        <ul id="attendanceReportList" class="text-xs space-y-1 overflow-y-auto flex-grow no-scrollbar"></ul>
+                    </div>
                 </div>
 
                 <div id="tab-events" class="view-panel hidden flex flex-col space-y-4">
@@ -266,14 +284,57 @@
                     <div class="bg-white rounded-2xl border flex-grow p-4 shadow-sm flex flex-col"><h3 class="text-xs font-bold uppercase text-gray-500 tracking-wider border-b pb-2 mb-2">Agenda Escolar</h3><div id="eventsList" class="space-y-2 overflow-y-auto flex-grow"></div></div>
                 </div>
 
-                <div id="tab-messages" class="view-panel hidden bg-white rounded-2xl border flex flex-col overflow-hidden flex-grow min-h-[500px] shadow-sm">
-                    <div class="bg-purple-50 border-b p-3 flex justify-between items-center"><span class="text-xs font-bold text-purple-800 uppercase tracking-wide"><i class="ph ph-chat-circle-text text-base align-middle"></i> Mural de Comunicação</span><select id="chatFilter" onchange="loadMessages()" class="text-xs p-1 rounded border outline-none bg-white"><option value="all">Todas as Mensagens</option></select></div>
-                    <div id="chatMessagesBox" class="flex-grow overflow-y-auto p-4 space-y-3 bg-gray-50"></div>
-                    <div class="p-3 border-t bg-white shrink-0">
-                        <form onsubmit="sendMessage(event)" class="space-y-2">
-                            <div class="flex gap-2"><input type="text" id="chatMessageInput" placeholder="Escreva sua mensagem..." class="flex-grow p-3 border rounded-xl text-xs outline-none bg-gray-50 focus:border-purple-500"><button type="submit" class="bg-purple-600 text-white px-5 rounded-xl transition hover:bg-purple-700 shadow-sm"><i class="ph ph-paper-plane-right text-lg"></i></button></div>
-                            <div class="flex items-center text-[10px] text-gray-500 font-bold uppercase tracking-wide"><label class="flex items-center gap-1 cursor-pointer hover:text-purple-600 transition bg-gray-100 py-1.5 px-3 rounded-lg border border-gray-200"><i class="ph ph-paperclip text-sm"></i><span id="fileNameDisplay">Anexar Arquivo</span><input type="file" id="chatFileInput" accept=".pdf,.doc,.docx,.xls,.xlsx,.csv,.jpg,.jpeg,.png" onchange="handleFileSelection()" class="hidden"></label><button type="button" id="clearFileBtn" onclick="clearFileSelection()" class="hidden ml-3 text-red-500 hover:bg-red-50 py-1 px-2 rounded transition">Remover</button></div>
-                        </form>
+                <div id="tab-messages" class="view-panel hidden bg-white rounded-2xl border flex overflow-hidden flex-grow md:h-[600px] min-h-[500px] shadow-sm relative">
+                    
+                    <div id="chatSidebar" class="w-full md:w-1/3 border-r flex flex-col bg-white shrink-0 absolute md:relative z-10 h-full transition-transform duration-300">
+                        <div class="p-4 border-b bg-gray-50 flex items-center justify-between shrink-0">
+                            <span class="text-sm font-bold text-gray-700"><i class="ph ph-chat-circle-text align-middle text-lg text-purple-600 mr-1"></i> Chat</span>
+                        </div>
+                        <div class="p-3 border-b shrink-0 bg-white">
+                            <div class="relative">
+                                <i class="ph ph-magnifying-glass absolute left-3 top-2.5 text-gray-400"></i>
+                                <input type="text" id="chatSearchInput" onkeyup="filterChatContacts()" placeholder="Pesquisar contato..." class="w-full pl-9 p-2 bg-gray-100 border-none rounded-xl text-xs outline-none focus:ring-2 focus:ring-purple-500 transition">
+                            </div>
+                        </div>
+                        <div id="chatContactsList" class="flex-grow overflow-y-auto overflow-x-hidden divide-y divide-gray-100">
+                            <div class="p-6 text-center text-xs text-gray-400">Carregando contatos...</div>
+                        </div>
+                    </div>
+                    
+                    <div id="chatArea" class="hidden md:flex flex-col w-full md:w-2/3 bg-[#efeae2] relative h-full">
+                        <div class="p-3 border-b bg-white flex items-center gap-3 shrink-0 shadow-sm z-10">
+                            <button onclick="closeChatAreaMobile()" class="md:hidden text-gray-500 hover:bg-gray-100 p-1.5 rounded-lg transition"><i class="ph ph-arrow-left text-xl"></i></button>
+                            <img id="activeChatAvatar" src="https://ui-avatars.com/api/?name=IC&background=e2e8f0" class="w-10 h-10 rounded-full border border-gray-200 object-cover bg-white">
+                            <div class="flex flex-col">
+                                <h4 id="activeChatName" class="text-sm font-bold text-gray-800 leading-tight">Selecione uma conversa</h4>
+                                <span id="activeChatStatus" class="text-[10px] text-gray-500">Inicie uma interação ao lado</span>
+                            </div>
+                        </div>
+                        
+                        <div id="chatMessagesBox" class="flex-grow overflow-y-auto p-4 space-y-3 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] relative">
+                            <div id="noChatSelectedMsg" class="absolute inset-0 flex items-center justify-center">
+                                <div class="bg-white/80 backdrop-blur px-6 py-3 rounded-full shadow-sm text-xs font-medium text-gray-500">
+                                    Selecione um chat para iniciar a conversa.
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div id="chatInputArea" class="p-3 bg-white shrink-0 hidden">
+                            <form onsubmit="sendMessage(event)" class="flex items-end gap-2">
+                                <button type="button" onclick="document.getElementById('chatFileInput').click()" class="text-gray-500 hover:bg-gray-100 hover:text-purple-600 p-2.5 rounded-full transition shrink-0"><i class="ph ph-paperclip text-xl"></i></button>
+                                <input type="file" id="chatFileInput" accept=".pdf,.doc,.docx,.xls,.xlsx,.csv,.jpg,.jpeg,.png" onchange="handleFileSelection()" class="hidden">
+                                
+                                <div class="flex-grow bg-gray-100 rounded-2xl relative flex items-center border border-transparent focus-within:border-purple-300 focus-within:bg-white transition px-4 py-1">
+                                    <input type="text" id="chatMessageInput" placeholder="Mensagem..." autocomplete="off" class="w-full bg-transparent py-2.5 text-sm outline-none">
+                                </div>
+                                
+                                <button type="submit" id="btnSendMessage" class="bg-purple-600 text-white rounded-full transition hover:bg-purple-700 shadow-sm shrink-0 flex items-center justify-center h-[42px] w-[42px]"><i class="ph ph-paper-plane-right text-lg ml-0.5"></i></button>
+                            </form>
+                            <div id="chatAttachmentPreview" class="hidden mt-2 p-2 bg-purple-50 rounded-xl flex items-center justify-between text-xs border border-purple-100">
+                                <div class="flex items-center gap-2 overflow-hidden"><i class="ph ph-file-text text-purple-600 text-base"></i><span id="fileNameDisplay" class="font-medium text-purple-800 truncate"></span></div>
+                                <button type="button" onclick="clearFileSelection()" class="text-red-500 hover:bg-red-50 p-1.5 rounded-lg"><i class="ph ph-x text-sm"></i></button>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -320,6 +381,22 @@
                         </div>
                     </form>
                 </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="cropModal" class="hidden fixed inset-0 bg-black bg-opacity-80 flex items-center justify-center z-[60] p-4">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden flex flex-col h-[500px]">
+            <div class="p-4 border-b bg-gray-50 flex justify-between items-center shrink-0">
+                <h3 class="font-bold text-gray-800">Ajustar Foto</h3>
+                <button onclick="closeCropModal()" class="text-gray-500 hover:text-red-500 transition"><i class="ph ph-x text-xl"></i></button>
+            </div>
+            <div class="flex-grow bg-black relative overflow-hidden flex items-center justify-center">
+                <img id="cropImage" src="" class="max-w-full max-h-full">
+            </div>
+            <div class="p-4 border-t bg-gray-50 flex gap-2 shrink-0">
+                <button onclick="closeCropModal()" class="flex-1 bg-gray-200 text-gray-700 py-2 rounded-xl font-bold">Cancelar</button>
+                <button onclick="applyCrop()" class="flex-1 bg-blue-600 text-white py-2 rounded-xl font-bold">Aplicar</button>
             </div>
         </div>
     </div>
