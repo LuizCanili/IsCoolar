@@ -26,37 +26,33 @@ let activeChatAvatar = "";
 window.chatAttachments = {}; 
 let cropper = null;
 
-const mockDb = {}; 
-
 window.onload = async function() {
     try {
         if (!firebase.apps.length) { firebase.initializeApp(firebaseConfig); db = firebase.firestore(); }
         useMock = false;
-        document.getElementById('dbStatus').className = "mt-8 p-3 bg-green-50 border-green-200 rounded-xl border text-xs text-green-700 text-center flex items-center justify-center gap-2 font-bold shadow-sm"; document.getElementById('dbStatus').innerHTML = '<i class="ph ph-check-circle text-lg"></i> Conectado ao Servidor';
+        document.getElementById('dbStatus').className = "mt-8 p-3 bg-green-50 border-green-200 rounded-xl border text-xs text-green-700 text-center flex items-center justify-center gap-2 font-bold shadow-sm"; 
+        document.getElementById('dbStatus').innerHTML = '<i class="ph ph-check-circle text-lg"></i> Conectado ao Servidor';
         
-        // ==========================================
-        // LÓGICA DO EDITOR DE ANOTAÇÕES (LISTA AUTOMÁTICA)
-        // ==========================================
         const noteTypeSelect = document.getElementById('noteType');
         const noteContentArea = document.getElementById('noteContent');
         if (noteTypeSelect && noteContentArea) {
-            noteTypeSelect.addEventListener('change', function() {
-                if (this.value === 'list' && noteContentArea.value.trim() === '') {
-                    noteContentArea.value = '• ';
-                }
+            noteTypeSelect.addEventListener('change', function() { 
+                if (this.value === 'list' && noteContentArea.value.trim() === '') { noteContentArea.value = '• '; } 
             });
-            noteContentArea.addEventListener('keydown', function(e) {
-                if (noteTypeSelect.value === 'list' && e.key === 'Enter') {
-                    e.preventDefault();
-                    const start = this.selectionStart;
-                    const end = this.selectionEnd;
-                    this.value = this.value.substring(0, start) + '\n• ' + this.value.substring(end);
-                    this.selectionStart = this.selectionEnd = start + 3;
-                }
+            noteContentArea.addEventListener('keydown', function(e) { 
+                if (noteTypeSelect.value === 'list' && e.key === 'Enter') { 
+                    e.preventDefault(); 
+                    const start = this.selectionStart; 
+                    const end = this.selectionEnd; 
+                    this.value = this.value.substring(0, start) + '\n• ' + this.value.substring(end); 
+                    this.selectionStart = this.selectionEnd = start + 3; 
+                } 
             });
         }
-
-    } catch (e) { document.getElementById('dbStatus').className = "mt-8 p-3 bg-red-50 border-red-200 rounded-xl border text-xs text-red-700 text-center flex items-center justify-center gap-2 font-bold shadow-sm"; document.getElementById('dbStatus').innerHTML = '<i class="ph ph-warning text-lg"></i> Erro de Conexão'; }
+    } catch (e) { 
+        document.getElementById('dbStatus').className = "mt-8 p-3 bg-red-50 border-red-200 rounded-xl border text-xs text-red-700 text-center flex items-center justify-center gap-2 font-bold shadow-sm"; 
+        document.getElementById('dbStatus').innerHTML = '<i class="ph ph-warning text-lg"></i> Erro de Conexão'; 
+    }
 };
 
 // ==========================================
@@ -71,6 +67,7 @@ const navConfig = {
 };
 
 const roleLabels = { admin: "Administrador", director: "Diretor(a)", coordinator: "Coordenador(a)", teacher: "Professor(a)", parent: "Responsável" };
+const statusLabels = { "Online": "🟢 Online", "Ausente": "... Ausente", "De Férias": "🌴 De Férias", "Em Reunião": "📅 Em Reunião" };
 
 function getInitials(name, type='USER') {
     if(!name) return "U";
@@ -159,13 +156,14 @@ async function changeAdminSchoolContext() { currentAdminSchoolId = document.getE
 // ==========================================
 // MODAL DE PERFIL E CROPPER
 // ==========================================
-function openProfileModal() { document.getElementById('profileModal').classList.remove('hidden'); document.getElementById('modalAvatarView').src = currentUser.avatar_url; document.getElementById('modalNameView').innerText = currentUser.name; document.getElementById('modalEmailView').innerText = currentUser.email; document.getElementById('editNameInput').value = currentUser.name; document.getElementById('editPassInput').value = currentUser.password; if (currentUser.role !== 'admin') { document.getElementById('editNameInput').readOnly = true; document.getElementById('editNameInput').classList.add('bg-gray-200', 'text-gray-500', 'cursor-not-allowed', 'opacity-70'); } else { document.getElementById('editNameInput').readOnly = false; document.getElementById('editNameInput').classList.remove('bg-gray-200', 'text-gray-500', 'cursor-not-allowed', 'opacity-70'); } tempAvatarBase64 = null; document.getElementById('profileViewMode').classList.remove('hidden'); document.getElementById('profileEditMode').classList.add('hidden'); }
+function openProfileModal() { document.getElementById('profileModal').classList.remove('hidden'); document.getElementById('modalAvatarView').src = currentUser.avatar_url; document.getElementById('modalNameView').innerText = currentUser.name; document.getElementById('modalEmailView').innerText = currentUser.email; document.getElementById('editNameInput').value = currentUser.name; document.getElementById('editPassInput').value = currentUser.password; if(document.getElementById('editStatusInput')) document.getElementById('editStatusInput').value = currentUser.status || "Online"; if (currentUser.role !== 'admin') { document.getElementById('editNameInput').readOnly = true; document.getElementById('editNameInput').classList.add('bg-gray-200', 'text-gray-500', 'cursor-not-allowed', 'opacity-70'); } else { document.getElementById('editNameInput').readOnly = false; document.getElementById('editNameInput').classList.remove('bg-gray-200', 'text-gray-500', 'cursor-not-allowed', 'opacity-70'); } tempAvatarBase64 = null; document.getElementById('profileViewMode').classList.remove('hidden'); document.getElementById('profileEditMode').classList.add('hidden'); }
 function closeProfileModal() { document.getElementById('profileModal').classList.add('hidden'); }
 function toggleProfileEdit() { document.getElementById('profileViewMode').classList.toggle('hidden'); document.getElementById('profileEditMode').classList.toggle('hidden'); }
 function handleImageUpload(event) { const file = event.target.files[0]; if (file) { const reader = new FileReader(); reader.onload = function(e) { document.getElementById('cropImage').src = e.target.result; document.getElementById('cropModal').classList.remove('hidden'); if (cropper) { cropper.destroy(); } const imageElement = document.getElementById('cropImage'); cropper = new Cropper(imageElement, { aspectRatio: 1, viewMode: 1, dragMode: 'move', autoCropArea: 1, restore: false, guides: true, center: true, highlight: false, cropBoxMovable: true, cropBoxResizable: true, toggleDragModeOnDblclick: false, }); }; reader.readAsDataURL(file); } event.target.value = ''; }
 function closeCropModal() { document.getElementById('cropModal').classList.add('hidden'); if(cropper) { cropper.destroy(); cropper = null; } }
 function applyCrop() { if (!cropper) return; const canvas = cropper.getCroppedCanvas({ width: 256, height: 256, imageSmoothingEnabled: true, imageSmoothingQuality: 'high' }); tempAvatarBase64 = canvas.toDataURL('image/jpeg', 0.8); document.getElementById('modalAvatarView').src = tempAvatarBase64; closeCropModal(); }
-async function saveProfileEdits(e) { e.preventDefault(); const p = document.getElementById('editPassInput').value; const n = document.getElementById('editNameInput').value; const btn = document.getElementById('btnSaveProfile'); btn.innerText = "Salvando..."; let updates = { password: p }; if(currentUser.role === 'admin') updates.name = n; if(tempAvatarBase64) updates.avatar_url = tempAvatarBase64; try { await db.collection('users').doc(currentUser.id).update(updates); currentUser.password = p; if(currentUser.role === 'admin') currentUser.name = n; if(tempAvatarBase64) { currentUser.avatar_url = tempAvatarBase64; document.getElementById('userAvatarDisplay').src = tempAvatarBase64; } document.getElementById('userNameDisplay').innerText = currentUser.name; alert("Perfil atualizado!"); toggleProfileEdit(); openProfileModal(); } catch(err) { alert("Erro: " + err.message); } finally { btn.innerText = "Salvar Dados"; } }
+async function saveProfileEdits(e) { e.preventDefault(); const p = document.getElementById('editPassInput').value; const n = document.getElementById('editNameInput').value; const status = document.getElementById('editStatusInput').value; const btn = document.getElementById('btnSaveProfile'); btn.innerText = "Salvando..."; let updates = { password: p, status: status }; if(currentUser.role === 'admin') updates.name = n; if(tempAvatarBase64) updates.avatar_url = tempAvatarBase64; try { await db.collection('users').doc(currentUser.id).update(updates); currentUser.password = p; currentUser.status = status; if(currentUser.role === 'admin') currentUser.name = n; if(tempAvatarBase64) { currentUser.avatar_url = tempAvatarBase64; document.getElementById('userAvatarDisplay').src = tempAvatarBase64; } document.getElementById('userNameDisplay').innerText = currentUser.name; alert("Perfil e status atualizados!"); toggleProfileEdit(); openProfileModal(); if(activeChatId) loadChat(); } catch(err) { alert("Erro: " + err.message); } finally { btn.innerText = "Salvar"; } }
+async function resetUserPassword(userId) { if(confirm("Deseja realmente resetar a senha deste usuário para '123'?")) { try { await db.collection('users').doc(userId).update({password: '123'}); alert("Senha resetada com sucesso para: 123"); } catch(e) { alert("Erro ao resetar senha."); } } }
 async function loadDashboard() { let s = await getFilteredData('students'); let u = await getFilteredData('users'); let e = await getFilteredData('events'); document.getElementById('statStudents').innerText = s.length; document.getElementById('statTeachers').innerText = u.filter(x=>x.role==='teacher'||x.role==='coordinator').length; document.getElementById('statEvents').innerText = e.length; }
 
 // ==========================================
@@ -179,12 +177,11 @@ async function startEditSchool(id) { try { const sc = loadedSchools.find(x=>x.id
 function cancelSchoolEdit() { editingSchoolId = null; document.getElementById('newSchoolId').readOnly = false; document.getElementById('newSchoolId').classList.remove('bg-gray-100', 'opacity-70'); ['Id','Name','Phone','Logradouro','Numero','Bairro','Cidade','Estado','CEP'].forEach(f => { if(document.getElementById(`newSchool${f}`)) document.getElementById(`newSchool${f}`).value=''; }); document.getElementById('newDirName').value=''; document.getElementById('newDirEmail').value=''; document.getElementById('newDirPass').value='123'; document.getElementById('btnSaveSchool').innerText = 'Cadastrar Instituição'; document.getElementById('btnCancelSchool').classList.add('hidden'); loadAdminSchools(); }
 
 async function loadAdminStudents() { const list = document.getElementById('settingsStudentsList'); list.innerHTML = ''; let allStudents = await getFilteredData('students', 'name'); let allUsers = await getFilteredData('users'); if (editingStudentId === null) { let maxNum = 0; allStudents.forEach(st => { if(st.id && st.id.startsWith('ALUNO_')) { let num = parseInt(st.id.replace('ALUNO_', ''), 10); if(!isNaN(num) && num > maxNum) maxNum = num; } }); let nextId = 'ALUNO_' + String(maxNum + 1).padStart(3, '0'); const idInput = document.getElementById('newStudentId'); idInput.value = nextId; idInput.readOnly = true; idInput.classList.add('bg-gray-100', 'opacity-70', 'cursor-not-allowed'); } let s = allStudents; if (currentUser.role === 'coordinator' && currentUser.class_name) { const myClasses = currentUser.class_name.split(', '); s = s.filter(student => myClasses.includes(student.class_name)); } loadedStudents = s; const canEdit = currentUser.role === 'admin' || currentUser.role === 'director' || currentUser.role === 'coordinator'; s.forEach(x => { const actions = canEdit ? `<button onclick="startEditStudent('${x.id}')" class="text-blue-500 hover:bg-blue-50 p-2 rounded-lg transition"><i class="ph ph-pencil-simple text-lg"></i></button><button onclick="openDeleteModal('${x.id}', 'student')" class="text-red-500 hover:bg-red-50 p-2 rounded-lg transition"><i class="ph ph-trash text-lg"></i></button>` : ''; let parents = allUsers.filter(u => u.role === 'parent' && u.child_id === x.id); let parentsText = parents.length > 0 ? parents.map(p => p.name.replace(/\(.*?\)/g, '').trim()).join(' | ') : 'Sem responsáveis'; list.innerHTML+=`<li class="p-4 flex justify-between items-center hover:bg-gray-50 transition"><div class="flex flex-col"><strong class="text-gray-800 text-sm font-black">${x.name}</strong><span class="text-[10px] text-gray-500 uppercase tracking-wide font-bold mt-0.5">RA: ${x.id} • <span class="text-[rgb(8,33,223)]">${x.class_name}</span></span><span class="text-[10px] text-gray-400 mt-1 font-medium"><i class="ph ph-users align-middle"></i> Pais/Resp: ${parentsText}</span></div><div class="flex gap-1">${actions}</div></li>`; }); populateSelects(); }
-async function directorSaveStudent(e) { e.preventDefault(); const sid = document.getElementById('newStudentId').value.trim(); const name = document.getElementById('newStudentName').value; const class_name = document.getElementById('newStudentClass').value; const r1e = document.getElementById('newResp1Email').value.trim(); const r1n = document.getElementById('newResp1Name').value; const r1r = document.getElementById('newResp1Rel').value; const r2e = document.getElementById('newResp2Email').value.trim(); const r2n = document.getElementById('newResp2Name').value; const r2r = document.getElementById('newResp2Rel').value; const schId = currentUser.role==='admin' ? currentAdminSchoolId : currentUser.school_id; if(editingStudentId === null) { await db.collection('students').doc(sid).set({name, class_name, school_id:schId}); await db.collection('users').add({email:r1e, name:`${r1n} (${r1r})`, role:'parent', child_id:sid, password:'123', school_id:schId}); if(r2e && r2n) { await db.collection('users').add({email:r2e, name:`${r2n} (${r2r || 'Responsável 2'})`, role:'parent', child_id:sid, password:'123', school_id:schId}); } } else { if(sid!==editingStudentId) { await db.collection('students').doc(editingStudentId).delete(); await db.collection('students').doc(sid).set({name, class_name, school_id:schId}); } else { await db.collection('students').doc(sid).update({name, class_name, school_id:schId}); } const parentQuery = await db.collection('users').where('role', '==', 'parent').where('child_id', '==', editingStudentId).get(); let parentDocs = parentQuery.docs; if (parentDocs[0]) { await db.collection('users').doc(parentDocs[0].id).update({email: r1e, name: `${r1n} (${r1r})`, child_id: sid}); } else { await db.collection('users').add({email:r1e, name:`${r1n} (${r1r})`, role:'parent', child_id:sid, password:'123', school_id:schId}); } if (r2e && r2n) { if (parentDocs[1]) { await db.collection('users').doc(parentDocs[1].id).update({email: r2e, name: `${r2n} (${r2r || 'Responsável 2'})`, child_id: sid}); } else { await db.collection('users').add({email:r2e, name:`${r2n} (${r2r || 'Responsável 2'})`, role:'parent', child_id:sid, password:'123', school_id:schId}); } } else if (parentDocs[1] && (!r2e || !r2n)) { await db.collection('users').doc(parentDocs[1].id).delete(); } } cancelStudentEdit(); alert("Aluno matriculado/atualizado com sucesso!"); }
+async function directorSaveStudent(e) { e.preventDefault(); const sid = document.getElementById('newStudentId').value.trim(); const name = document.getElementById('newStudentName').value; const class_name = document.getElementById('newStudentClass').value; const r1e = document.getElementById('newResp1Email').value.trim(); const r1n = document.getElementById('newResp1Name').value; const r1r = document.getElementById('newResp1Rel').value; const r2e = document.getElementById('newResp2Email').value.trim(); const r2n = document.getElementById('newResp2Name').value; const r2r = document.getElementById('newResp2Rel').value; const schId = currentUser.role==='admin' ? currentAdminSchoolId : currentUser.school_id; if(editingStudentId === null) { await db.collection('students').doc(sid).set({name, class_name, school_id:schId}); await db.collection('users').add({email:r1e, name:`${r1n} (${r1r})`, role:'parent', child_id:sid, password:'123', school_id:schId, status: 'Online'}); if(r2e && r2n) { await db.collection('users').add({email:r2e, name:`${r2n} (${r2r || 'Responsável 2'})`, role:'parent', child_id:sid, password:'123', school_id:schId, status: 'Online'}); } } else { if(sid!==editingStudentId) { await db.collection('students').doc(editingStudentId).delete(); await db.collection('students').doc(sid).set({name, class_name, school_id:schId}); } else { await db.collection('students').doc(sid).update({name, class_name, school_id:schId}); } const parentQuery = await db.collection('users').where('role', '==', 'parent').where('child_id', '==', editingStudentId).get(); let parentDocs = parentQuery.docs; if (parentDocs[0]) { await db.collection('users').doc(parentDocs[0].id).update({email: r1e, name: `${r1n} (${r1r})`, child_id: sid}); } else { await db.collection('users').add({email:r1e, name:`${r1n} (${r1r})`, role:'parent', child_id:sid, password:'123', school_id:schId, status: 'Online'}); } if (r2e && r2n) { if (parentDocs[1]) { await db.collection('users').doc(parentDocs[1].id).update({email: r2e, name: `${r2n} (${r2r || 'Responsável 2'})`, child_id: sid}); } else { await db.collection('users').add({email:r2e, name:`${r2n} (${r2r || 'Responsável 2'})`, role:'parent', child_id:sid, password:'123', school_id:schId, status: 'Online'}); } } else if (parentDocs[1] && (!r2e || !r2n)) { await db.collection('users').doc(parentDocs[1].id).delete(); } } cancelStudentEdit(); alert("Aluno matriculado/atualizado com sucesso!"); }
 async function startEditStudent(id) { const s = loadedStudents.find(x=>x.id===id); if(!s) return; editingStudentId=id; const idInput = document.getElementById('newStudentId'); idInput.value = s.id; idInput.readOnly = true; idInput.classList.add('bg-gray-100', 'opacity-70', 'cursor-not-allowed'); document.getElementById('newStudentName').value = s.name; document.getElementById('newStudentClass').value = s.class_name; const parentQuery = await db.collection('users').where('role', '==', 'parent').where('child_id', '==', id).get(); let parents = parentQuery.docs.map(doc => doc.data()); if (parents[0]) { document.getElementById('newResp1Email').value = parents[0].email || ''; let match = parents[0].name.match(/(.*?)\s*\((.*?)\)/); if(match) { document.getElementById('newResp1Name').value = match[1].trim(); document.getElementById('newResp1Rel').value = match[2].trim(); } else { document.getElementById('newResp1Name').value = parents[0].name.replace(/\(.*?\)/g, '').trim(); document.getElementById('newResp1Rel').value = ''; } } if (parents[1]) { document.getElementById('newResp2Email').value = parents[1].email || ''; let match = parents[1].name.match(/(.*?)\s*\((.*?)\)/); if(match) { document.getElementById('newResp2Name').value = match[1].trim(); document.getElementById('newResp2Rel').value = match[2].trim(); } else { document.getElementById('newResp2Name').value = parents[1].name.replace(/\(.*?\)/g, '').trim(); document.getElementById('newResp2Rel').value = ''; } } document.getElementById('btnSaveStudent').innerText = 'Atualizar Cadastro'; document.getElementById('btnCancelStudent').classList.remove('hidden'); document.getElementById('adminView-students').scrollIntoView({behavior:'smooth'}); }
 function cancelStudentEdit() { editingStudentId=null; ['newStudentName','newStudentClass','newResp1Email','newResp1Rel','newResp1Name','newResp2Email','newResp2Rel','newResp2Name'].forEach(id => { if(document.getElementById(id)) document.getElementById(id).value = ''; }); document.getElementById('btnSaveStudent').innerText='Matricular Aluno'; document.getElementById('btnCancelStudent').classList.add('hidden'); loadAdminStudents(); }
-
 async function loadAdminStaff() { const list=document.getElementById('settingsStaffList'); list.innerHTML=''; let u=await getFilteredData('users', 'name'); loadedStaff=u; u.filter(x=>x.role!=='parent' && x.role!=='admin').forEach(x => { const canEdit = currentUser.role === 'admin' || currentUser.role === 'director' || (currentUser.role === 'coordinator' && x.role !== 'director' && x.role !== 'coordinator'); let actions = ''; if(canEdit) { actions = `<button onclick="resetUserPassword('${x.id}')" title="Resetar Senha" class="text-amber-500 hover:bg-amber-50 p-2 rounded-lg transition"><i class="ph ph-key text-lg"></i></button><button onclick="startEditStaff('${x.id}')" title="Editar Usuário" class="text-blue-500 hover:bg-blue-50 p-2 rounded-lg transition"><i class="ph ph-pencil-simple text-lg"></i></button><button onclick="openDeleteModal('${x.id}', 'user')" title="Excluir Usuário" class="text-red-500 hover:bg-red-50 p-2 rounded-lg transition"><i class="ph ph-trash text-lg"></i></button>`; } list.innerHTML+=`<li class="p-4 flex justify-between items-center hover:bg-gray-50 transition"><div class="flex flex-col"><strong class="text-gray-800 text-sm font-black">${x.name} <span class="bg-gray-100 text-gray-500 px-2 py-0.5 rounded ml-1 text-[9px] uppercase tracking-wider">${roleLabels[x.role]||x.role}</span></strong><span class="text-[10px] text-gray-500 font-medium mt-1">${x.email} • Turmas: <span class="font-bold text-gray-700">${x.class_name||'Geral'}</span></span></div><div class="flex gap-1">${actions}</div></li>`; }); populateSelects(); }
-async function directorAddStaff(e) { e.preventDefault(); const role=document.getElementById('newStaffRole').value; const name=document.getElementById('newStaffName').value; const email=document.getElementById('newStaffEmail').value; const checkboxes = document.querySelectorAll('.staff-class-checkbox:checked'); const class_name = Array.from(checkboxes).map(cb => cb.value).join(', '); const schId = currentUser.role==='admin' ? currentAdminSchoolId : currentUser.school_id; const p={email, name, role, class_name, password:'123', school_id:schId}; if(editingStaffId === null) { await db.collection('users').add(p); alert("Contratado!"); } else { await db.collection('users').doc(editingStaffId).update({role, name, email, class_name}); alert("Funcionário atualizado!"); } cancelStaffEdit(); loadAdminStaff(); }
+async function directorAddStaff(e) { e.preventDefault(); const role=document.getElementById('newStaffRole').value; const name=document.getElementById('newStaffName').value; const email=document.getElementById('newStaffEmail').value; const checkboxes = document.querySelectorAll('.staff-class-checkbox:checked'); const class_name = Array.from(checkboxes).map(cb => cb.value).join(', '); const schId = currentUser.role==='admin' ? currentAdminSchoolId : currentUser.school_id; const p={email, name, role, class_name, password:'123', school_id:schId, status: 'Online'}; if(editingStaffId === null) { await db.collection('users').add(p); alert("Contratado!"); } else { await db.collection('users').doc(editingStaffId).update({role, name, email, class_name}); alert("Funcionário atualizado!"); } cancelStaffEdit(); loadAdminStaff(); }
 function startEditStaff(id) { const st = loadedStaff.find(x=>x.id===id); if(!st) return; editingStaffId = id; document.getElementById('newStaffRole').value = st.role; document.getElementById('newStaffName').value = st.name; document.getElementById('newStaffEmail').value = st.email; const assigned = (st.class_name || '').split(', '); document.querySelectorAll('.staff-class-checkbox').forEach(cb => { cb.checked = assigned.includes(cb.value); }); document.getElementById('btnSaveStaff').innerText = 'Atualizar Cadastro'; document.getElementById('btnCancelStaff').classList.remove('hidden'); document.getElementById('adminView-staff').scrollIntoView({behavior:'smooth'}); }
 function cancelStaffEdit() { editingStaffId=null; document.getElementById('newStaffRole').value='coordinator'; document.getElementById('newStaffName').value=''; document.getElementById('newStaffEmail').value=''; document.querySelectorAll('.staff-class-checkbox').forEach(cb => cb.checked = false); document.getElementById('btnSaveStaff').innerText='Contratar Funcionário'; document.getElementById('btnCancelStaff').classList.add('hidden'); }
 async function loadAdminClasses() { const list=document.getElementById('settingsClassesList'); list.innerHTML=''; let c=await getFilteredData('classes', 'name'); loadedClasses=c; c.forEach(x=>{list.innerHTML+=`<li class="p-4 flex justify-between items-center hover:bg-gray-50 transition"><span class="font-black text-gray-800">${x.name}</span><div class="flex gap-2"><button onclick="startEditClass('${x.id}')" class="text-blue-500 hover:bg-blue-50 p-2 rounded-lg transition"><i class="ph ph-pencil-simple text-lg"></i></button><button onclick="openDeleteModal('${x.id}', 'class')" class="text-red-500 hover:bg-red-50 p-2 rounded-lg transition"><i class="ph ph-trash text-lg"></i></button></div></li>`;}); }
@@ -212,76 +209,10 @@ function generateBoletimPDF() { if(!currentGradeStudentId) return alert("Selecio
 // ==========================================
 // CHAMADA (FREQUÊNCIA LOTE)
 // ==========================================
-async function loadAttendanceInit() { 
-    document.getElementById('attendanceDate').valueAsDate = new Date(); 
-    const isParent = currentUser.role === 'parent';
-    
-    if (isParent) {
-        document.getElementById('attendanceFormContainer').classList.add('hidden');
-        document.getElementById('attendanceReportTitle').innerText = 'Meu Relatório de Faltas';
-        loadParentAttendance();
-    } else {
-        document.getElementById('attendanceFormContainer').classList.remove('hidden');
-        document.getElementById('attendanceReportTitle').innerText = 'Relatório Geral da Turma (Faltas)';
-        let classes = await getFilteredData('classes', 'name');
-        if (currentUser.role === 'coordinator' || currentUser.role === 'teacher') {
-            if (currentUser.class_name) {
-                const myClasses = currentUser.class_name.split(', ');
-                classes = classes.filter(c => myClasses.includes(c.name));
-            } else { classes = []; }
-        }
-        const sel = document.getElementById('attendanceClassSelect');
-        if(sel) sel.innerHTML = '<option value="" disabled selected>Selecione a Turma...</option>' + classes.map(c => `<option value="${c.name}">${c.name}</option>`).join('');
-    }
-}
-async function loadAttendanceClass() { 
-    const date = document.getElementById('attendanceDate').value; 
-    const className = document.getElementById('attendanceClassSelect').value;
-    if(!date || !className) return; 
-    
-    const list = document.getElementById('attendanceListForm'); 
-    list.innerHTML = '<div class="text-center p-6 text-xs font-bold text-gray-400">Carregando diário de classe...</div>'; 
-    list.classList.remove('hidden'); document.getElementById('btnSaveAttendance').classList.add('hidden');
-    
-    let stds = await getFilteredData('students', 'name'); stds = stds.filter(s => s.class_name === className); 
-    let att = await getFilteredData('attendance'); let todayAtt = att.filter(a => a.date === date);
-
-    list.innerHTML = ''; 
-    if(stds.length === 0) { list.innerHTML = '<div class="text-center p-6 text-xs font-bold text-gray-400">Nenhum aluno matriculado nesta turma.</div>'; return; }
-
-    stds.forEach(s => { 
-        let myRecord = todayAtt.find(a => a.student_id === s.id);
-        let isP = myRecord && myRecord.status === 'Presente' ? 'checked' : '';
-        let isF = myRecord && myRecord.status === 'Falta' ? 'checked' : '';
-        list.innerHTML += `<div class="attendance-row flex justify-between items-center bg-gray-50 hover:bg-white p-3 rounded-xl border border-gray-100 shadow-sm transition" data-id="${s.id}"><span class="font-black text-gray-800 text-xs">${s.name}</span><div class="flex gap-3 bg-white p-1.5 rounded-lg border border-gray-200 shadow-inner"><label class="flex items-center gap-1.5 cursor-pointer px-3 py-1.5 hover:bg-green-100 rounded-md transition text-green-700 font-bold text-xs"><input type="radio" name="att_${s.id}" value="Presente" ${isP} class="w-3.5 h-3.5 accent-green-600"> Presente</label><label class="flex items-center gap-1.5 cursor-pointer px-3 py-1.5 hover:bg-red-100 rounded-md transition text-red-700 font-bold text-xs"><input type="radio" name="att_${s.id}" value="Falta" ${isF} class="w-3.5 h-3.5 accent-red-600"> Falta</label></div></div>`; 
-    }); 
-    document.getElementById('btnSaveAttendance').classList.remove('hidden'); loadStaffAttendanceReport(className);
-}
-async function saveBulkAttendance() {
-    const date = document.getElementById('attendanceDate').value; const className = document.getElementById('attendanceClassSelect').value;
-    if(!date || !className) return;
-    const btn = document.getElementById('btnSaveAttendance'); const origText = btn.innerText; btn.innerHTML = 'Salvando Registros...';
-    const schId = currentUser.role === 'admin' ? currentAdminSchoolId : currentUser.school_id;
-    const studentRows = document.querySelectorAll('.attendance-row');
-    let existing = await getFilteredData('attendance'); existing = existing.filter(a => a.date === date);
-    const batch = db.batch();
-    studentRows.forEach(row => {
-        const stId = row.getAttribute('data-id'); const statusNode = row.querySelector(`input[name="att_${stId}"]:checked`);
-        if(statusNode) {
-            const status = statusNode.value; const record = existing.find(a => a.student_id === stId);
-            if (record) { if (record.status !== status) batch.update(db.collection('attendance').doc(record.id), { status }); } 
-            else { const newRef = db.collection('attendance').doc(); batch.set(newRef, { student_id: stId, date, status, school_id: schId }); }
-        }
-    });
-    await batch.commit(); btn.innerHTML = origText; alert("Diário de classe salvo com sucesso!"); loadStaffAttendanceReport(className);
-}
-async function loadStaffAttendanceReport(className) {
-    const list = document.getElementById('attendanceReportList'); list.innerHTML = '<li class="text-xs text-gray-400 font-medium p-3">Calculando faltas...</li>';
-    let stds = await getFilteredData('students', 'name'); stds = stds.filter(s => s.class_name === className);
-    let att = await getFilteredData('attendance');
-    list.innerHTML = ''; if(stds.length === 0) { list.innerHTML = '<li class="text-xs text-gray-400 font-medium p-3">Sem alunos.</li>'; return; }
-    stds.forEach(s => { let faltas = att.filter(a => a.student_id === s.id && a.status === 'Falta').length; list.innerHTML += `<li class="p-4 border-b border-gray-100 flex justify-between items-center text-xs hover:bg-gray-100 transition"><span class="font-bold text-gray-700">${s.name}</span><span class="${faltas > 0 ? 'bg-red-50 text-red-600 border border-red-100' : 'bg-green-50 text-green-600 border border-green-100'} px-3 py-1.5 rounded-lg font-black shadow-sm">${faltas} Faltas</span></li>`; });
-}
+async function loadAttendanceInit() { document.getElementById('attendanceDate').valueAsDate = new Date(); const isParent = currentUser.role === 'parent'; if (isParent) { document.getElementById('attendanceFormContainer').classList.add('hidden'); document.getElementById('attendanceReportTitle').innerText = 'Meu Relatório de Faltas'; loadParentAttendance(); } else { document.getElementById('attendanceFormContainer').classList.remove('hidden'); document.getElementById('attendanceReportTitle').innerText = 'Relatório Geral da Turma (Faltas)'; let classes = await getFilteredData('classes', 'name'); if (currentUser.role === 'coordinator' || currentUser.role === 'teacher') { if (currentUser.class_name) { const myClasses = currentUser.class_name.split(', '); classes = classes.filter(c => myClasses.includes(c.name)); } else { classes = []; } } const sel = document.getElementById('attendanceClassSelect'); if(sel) sel.innerHTML = '<option value="" disabled selected>Selecione a Turma...</option>' + classes.map(c => `<option value="${c.name}">${c.name}</option>`).join(''); } }
+async function loadAttendanceClass() { const date = document.getElementById('attendanceDate').value; const className = document.getElementById('attendanceClassSelect').value; if(!date || !className) return; const list = document.getElementById('attendanceListForm'); list.innerHTML = '<div class="text-center p-6 text-xs font-bold text-gray-400">Carregando diário de classe...</div>'; list.classList.remove('hidden'); document.getElementById('btnSaveAttendance').classList.add('hidden'); let stds = await getFilteredData('students', 'name'); stds = stds.filter(s => s.class_name === className); let att = await getFilteredData('attendance'); let todayAtt = att.filter(a => a.date === date); list.innerHTML = ''; if(stds.length === 0) { list.innerHTML = '<div class="text-center p-6 text-xs font-bold text-gray-400">Nenhum aluno matriculado nesta turma.</div>'; return; } stds.forEach(s => { let myRecord = todayAtt.find(a => a.student_id === s.id); let isP = myRecord && myRecord.status === 'Presente' ? 'checked' : ''; let isF = myRecord && myRecord.status === 'Falta' ? 'checked' : ''; list.innerHTML += `<div class="attendance-row flex justify-between items-center bg-gray-50 hover:bg-white p-3 rounded-xl border border-gray-100 shadow-sm transition" data-id="${s.id}"><span class="font-black text-gray-800 text-xs">${s.name}</span><div class="flex gap-3 bg-white p-1.5 rounded-lg border border-gray-200 shadow-inner"><label class="flex items-center gap-1.5 cursor-pointer px-3 py-1.5 hover:bg-green-100 rounded-md transition text-green-700 font-bold text-xs"><input type="radio" name="att_${s.id}" value="Presente" ${isP} class="w-3.5 h-3.5 accent-green-600"> Presente</label><label class="flex items-center gap-1.5 cursor-pointer px-3 py-1.5 hover:bg-red-100 rounded-md transition text-red-700 font-bold text-xs"><input type="radio" name="att_${s.id}" value="Falta" ${isF} class="w-3.5 h-3.5 accent-red-600"> Falta</label></div></div>`; }); document.getElementById('btnSaveAttendance').classList.remove('hidden'); loadStaffAttendanceReport(className); }
+async function saveBulkAttendance() { const date = document.getElementById('attendanceDate').value; const className = document.getElementById('attendanceClassSelect').value; if(!date || !className) return; const btn = document.getElementById('btnSaveAttendance'); const origText = btn.innerText; btn.innerHTML = 'Salvando Registros...'; const schId = currentUser.role === 'admin' ? currentAdminSchoolId : currentUser.school_id; const studentRows = document.querySelectorAll('.attendance-row'); let existing = await getFilteredData('attendance'); existing = existing.filter(a => a.date === date); const batch = db.batch(); studentRows.forEach(row => { const stId = row.getAttribute('data-id'); const statusNode = row.querySelector(`input[name="att_${stId}"]:checked`); if(statusNode) { const status = statusNode.value; const record = existing.find(a => a.student_id === stId); if (record) { if (record.status !== status) batch.update(db.collection('attendance').doc(record.id), { status }); } else { const newRef = db.collection('attendance').doc(); batch.set(newRef, { student_id: stId, date, status, school_id: schId }); } } }); await batch.commit(); btn.innerHTML = origText; alert("Diário de classe salvo com sucesso!"); loadStaffAttendanceReport(className); }
+async function loadStaffAttendanceReport(className) { const list = document.getElementById('attendanceReportList'); list.innerHTML = '<li class="text-xs text-gray-400 font-medium p-3">Calculando faltas...</li>'; let stds = await getFilteredData('students', 'name'); stds = stds.filter(s => s.class_name === className); let att = await getFilteredData('attendance'); list.innerHTML = ''; if(stds.length === 0) { list.innerHTML = '<li class="text-xs text-gray-400 font-medium p-3">Sem alunos.</li>'; return; } stds.forEach(s => { let faltas = att.filter(a => a.student_id === s.id && a.status === 'Falta').length; list.innerHTML += `<li class="p-4 border-b border-gray-100 flex justify-between items-center text-xs hover:bg-gray-100 transition"><span class="font-bold text-gray-700">${s.name}</span><span class="${faltas > 0 ? 'bg-red-50 text-red-600 border border-red-100' : 'bg-green-50 text-green-600 border border-green-100'} px-3 py-1.5 rounded-lg font-black shadow-sm">${faltas} Faltas</span></li>`; }); }
 async function loadParentAttendance() { const list=document.getElementById('attendanceReportList'); list.innerHTML=''; let att=await getFilteredData('attendance'); att=att.filter(a=>a.student_id===currentUser.child_id); if(att.length===0) list.innerHTML='<li class="text-gray-400 py-8 text-center font-medium">Nenhum registro de falta no sistema.</li>'; else att.forEach(a=>{ list.innerHTML+=`<li class="p-4 border-b border-gray-100 bg-white flex justify-between items-center hover:bg-gray-50 transition"><span class="font-medium text-gray-600"><i class="ph ph-calendar-blank align-middle text-lg mr-1 text-gray-400"></i> ${a.date.split('-').reverse().join('/')}</span><span class="font-black px-4 py-1.5 rounded-lg shadow-sm border ${a.status==='Presente'?'bg-green-50 text-green-600 border-green-100':'bg-red-50 text-red-600 border-red-100'}">${a.status}</span></li>`; }); }
 
 // ==========================================
@@ -296,199 +227,138 @@ function cancelEventEdit() { editingEventId = null; document.getElementById('eve
 // ANOTAÇÕES (LISTA INTERATIVA E TEXTO LIVRE)
 // ==========================================
 async function loadNotes() {
-    const container = document.getElementById('notesListContainer');
-    if(!container) return;
+    const container = document.getElementById('notesListContainer'); if(!container) return;
     container.innerHTML = '<div class="col-span-full text-center p-4 text-xs font-bold text-gray-400">Carregando anotações...</div>';
-    
     try {
-        let notes = await getFilteredData('notes', 'timestamp');
-        notes = notes.filter(n => n.author_id === currentUser.id).reverse();
-        loadedNotes = notes;
-        
-        container.innerHTML = '';
-        if(notes.length === 0) {
-            container.innerHTML = '<div class="col-span-full text-center p-8 text-xs font-medium text-gray-400">Você ainda não tem anotações.<br>Use o painel ao lado para criar.</div>';
-            return;
-        }
-        
+        let notes = await getFilteredData('notes', 'timestamp'); notes = notes.filter(n => n.author_id === currentUser.id).reverse(); loadedNotes = notes; container.innerHTML = '';
+        if(notes.length === 0) { container.innerHTML = '<div class="col-span-full text-center p-8 text-xs font-medium text-gray-400">Você ainda não tem anotações.</div>'; return; }
         notes.forEach(n => {
             let contentHtml = '';
             if(n.type === 'list') {
                 let items = n.content.split('\n').filter(i => i.trim() !== '');
                 contentHtml = '<div class="space-y-1.5 mt-1">' + items.map((i, idx) => {
-                    let isChecked = i.trim().startsWith('✓');
-                    // Remove os marcadores internos antes de renderizar
-                    let text = i.replace(/^[\u2022\u2713\-\*\[\]xX\s]+/, '').trim(); 
-                    return `<label class="flex items-start gap-2 cursor-pointer group text-xs font-medium">
-                        <input type="checkbox" class="mt-0.5 w-3.5 h-3.5 accent-yellow-500 rounded border-gray-300 cursor-pointer" ${isChecked ? 'checked' : ''} onchange="toggleNoteItem('${n.id}', ${idx}, this.checked)">
-                        <span class="${isChecked ? 'line-through text-gray-400' : 'text-gray-700'} transition-all">${text}</span>
-                    </label>`;
+                    let isChecked = i.trim().startsWith('✓'); let text = i.replace(/^[\u2022\u2713\-\*\[\]xX\s]+/, '').trim();
+                    return `<label class="flex items-start gap-2 cursor-pointer group text-xs font-medium"><input type="checkbox" class="mt-0.5 w-3.5 h-3.5 accent-yellow-500 rounded border-gray-300" ${isChecked ? 'checked' : ''} onchange="toggleNoteItem('${n.id}', ${idx}, this.checked)"><span class="${isChecked ? 'line-through text-gray-400' : 'text-gray-700'}">${text}</span></label>`;
                 }).join('') + '</div>';
-            } else {
-                contentHtml = `<p class="text-xs text-gray-600 whitespace-pre-wrap font-medium">${n.content}</p>`;
-            }
-            
+            } else { contentHtml = `<p class="text-xs text-gray-600 whitespace-pre-wrap font-medium">${n.content}</p>`; }
             const dateStr = new Date(n.timestamp).toLocaleDateString('pt-BR');
-            
-            container.innerHTML += `
-                <div class="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition flex flex-col group relative overflow-hidden h-48">
-                    <div class="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition flex gap-1 z-10 bg-white/80 backdrop-blur rounded-lg p-1">
-                        <button onclick="startEditNote('${n.id}')" class="text-gray-400 hover:text-[rgb(8,33,223)] p-1.5 rounded transition"><i class="ph ph-pencil-simple text-sm"></i></button>
-                        <button onclick="openDeleteModal('${n.id}', 'note')" class="text-gray-400 hover:text-red-500 p-1.5 rounded transition"><i class="ph ph-trash text-sm"></i></button>
-                    </div>
-                    <h5 class="font-black text-sm text-gray-800 mb-1 pr-12 truncate">${n.title}</h5>
-                    <span class="text-[9px] font-black text-yellow-600 uppercase tracking-wider mb-3">${dateStr} • ${n.type === 'list' ? 'Lista de Tarefas' : 'Texto Livre'}</span>
-                    <div class="flex-grow overflow-y-auto no-scrollbar relative pr-2">
-                        ${contentHtml}
-                    </div>
-                </div>
-            `;
+            container.innerHTML += `<div class="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm hover:shadow-md transition flex flex-col group relative overflow-hidden h-48"><div class="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition flex gap-1 z-10 bg-white/80 backdrop-blur rounded-lg p-1"><button onclick="startEditNote('${n.id}')" class="text-gray-400 hover:text-[rgb(8,33,223)] p-1.5 rounded"><i class="ph ph-pencil-simple text-sm"></i></button><button onclick="openDeleteModal('${n.id}', 'note')" class="text-gray-400 hover:text-red-500 p-1.5 rounded"><i class="ph ph-trash text-sm"></i></button></div><h5 class="font-black text-sm text-gray-800 mb-1 pr-12 truncate">${n.title}</h5><span class="text-[9px] font-black text-yellow-600 uppercase tracking-wider mb-3">${dateStr} • ${n.type === 'list' ? 'Lista de Tarefas' : 'Texto Livre'}</span><div class="flex-grow overflow-y-auto no-scrollbar relative pr-2">${contentHtml}</div></div>`;
         });
-    } catch (err) {
-        container.innerHTML = '<div class="col-span-full text-center p-4 text-xs font-bold text-red-400">Erro ao carregar anotações.</div>';
-    }
+    } catch (err) { console.error(err); }
 }
-
-// Salva em tempo real quando o usuário clica na checkbox da anotação
 async function toggleNoteItem(noteId, itemIndex, isChecked) {
-    const note = loadedNotes.find(x => x.id === noteId);
-    if (!note) return;
-    
-    let lines = note.content.split('\n');
-    let currentIdx = 0;
-    
+    const note = loadedNotes.find(x => x.id === noteId); if (!note) return;
+    let lines = note.content.split('\n'); let currentIdx = 0;
     for (let i = 0; i < lines.length; i++) {
         if (lines[i].trim() !== '') {
-            if (currentIdx === itemIndex) {
-                let text = lines[i].replace(/^[\u2022\u2713\-\*\[\]xX\s]+/, '').trim();
-                lines[i] = (isChecked ? '✓ ' : '• ') + text;
-                break;
-            }
+            if (currentIdx === itemIndex) { let text = lines[i].replace(/^[\u2022\u2713\-\*\[\]xX\s]+/, '').trim(); lines[i] = (isChecked ? '✓ ' : '• ') + text; break; }
             currentIdx++;
         }
     }
-    
-    note.content = lines.join('\n');
-    loadNotes(); // Atualiza a tela (Optimistic UI)
-    
-    try {
-        await db.collection('notes').doc(noteId).update({ content: note.content });
-    } catch(e) { console.error("Erro ao salvar checkbox: ", e); }
+    note.content = lines.join('\n'); loadNotes();
+    try { await db.collection('notes').doc(noteId).update({ content: note.content }); } catch(e) { console.error(e); }
 }
-
 async function handleNoteSubmit(e) {
-    e.preventDefault();
-    const title = document.getElementById('noteTitle').value.trim();
-    const type = document.getElementById('noteType').value;
-    const content = document.getElementById('noteContent').value.trim();
-    const schId = currentUser.role === 'admin' ? currentAdminSchoolId : currentUser.school_id;
-    
-    const btn = document.getElementById('btnSaveNote');
-    const orig = btn.innerText;
-    btn.innerText = 'Salvando...';
-    
+    e.preventDefault(); const title = document.getElementById('noteTitle').value.trim(); const type = document.getElementById('noteType').value; const content = document.getElementById('noteContent').value.trim(); const schId = currentUser.role === 'admin' ? currentAdminSchoolId : currentUser.school_id;
+    const btn = document.getElementById('btnSaveNote'); const orig = btn.innerText; btn.innerText = 'Salvando...';
     try {
-        if (editingNoteId === null) {
-            await db.collection('notes').add({
-                title, type, content,
-                author_id: currentUser.id,
-                school_id: schId,
-                timestamp: Date.now()
-            });
-        } else {
-            await db.collection('notes').doc(editingNoteId).update({ title, type, content });
-        }
-        cancelNoteEdit();
-        loadNotes();
-    } catch (err) { alert("Erro ao salvar anotação."); } 
-    finally { btn.innerText = orig; }
+        if (editingNoteId === null) { await db.collection('notes').add({ title, type, content, author_id: currentUser.id, school_id: schId, timestamp: Date.now() }); } 
+        else { await db.collection('notes').doc(editingNoteId).update({ title, type, content }); }
+        cancelNoteEdit(); loadNotes();
+    } catch (err) { alert("Erro ao salvar anotação."); } finally { btn.innerText = orig; }
 }
-
-function startEditNote(id) {
-    const note = loadedNotes.find(x => x.id === id);
-    if(!note) return;
-    editingNoteId = id;
-    document.getElementById('noteTitle').value = note.title;
-    document.getElementById('noteType').value = note.type || 'text';
-    document.getElementById('noteContent').value = note.content;
-    document.getElementById('noteFormTitle').innerText = 'Editar Anotação';
-    document.getElementById('btnSaveNote').innerText = 'Atualizar Anotação';
-    document.getElementById('btnCancelNote').classList.remove('hidden');
-}
-
-function cancelNoteEdit() {
-    editingNoteId = null;
-    document.getElementById('noteForm').reset();
-    document.getElementById('noteFormTitle').innerText = 'Nova Anotação';
-    document.getElementById('btnSaveNote').innerText = 'Salvar Anotação';
-    document.getElementById('btnCancelNote').classList.add('hidden');
-}
+function startEditNote(id) { const note = loadedNotes.find(x => x.id === id); if(!note) return; editingNoteId = id; document.getElementById('noteTitle').value = note.title; document.getElementById('noteType').value = note.type || 'text'; document.getElementById('noteContent').value = note.content; document.getElementById('noteFormTitle').innerText = 'Editar Anotação'; document.getElementById('btnSaveNote').innerText = 'Atualizar Anotação'; document.getElementById('btnCancelNote').classList.remove('hidden'); }
+function cancelNoteEdit() { editingNoteId = null; document.getElementById('noteForm').reset(); document.getElementById('noteFormTitle').innerText = 'Nova Anotação'; document.getElementById('btnSaveNote').innerText = 'Salvar Anotação'; document.getElementById('btnCancelNote').classList.add('hidden'); }
 
 // ==========================================
-// CHAT - ESTILO WHATSAPP/TELEGRAM
+// CHAT - ESTILO WHATSAPP/TELEGRAM (HISTÓRICO)
 // ==========================================
 async function renderChatContacts() {
     const list = document.getElementById('chatContactsList'); if(!list) return;
+    let msgs = await getFilteredData('messages', 'timestamp'); let users = await getFilteredData('users'); let students = await getFilteredData('students');
+    let myClasses = [];
+    if (currentUser.role === 'teacher' || currentUser.role === 'coordinator') { if (currentUser.class_name) myClasses = currentUser.class_name.split(', '); } 
+    else if (currentUser.role === 'parent') { let childIds = String(currentUser.child_id).split(',').map(s=>s.trim()); let myChildren = students.filter(s => childIds.includes(String(s.id))); myClasses = myChildren.map(c => c.class_name); }
+
+    msgs = msgs.filter(m => {
+        if (!m.recipient || m.recipient === 'ALL' || m.sender_id === currentUser.id) return true;
+        if (m.recipient === 'SCOPE_ALL') { if (m.sender_role === 'director' || currentUser.role === 'director') return true; if (m.sender_role === 'coordinator') { if (currentUser.role !== 'parent') return true; let senderClasses = m.sender_classes ? m.sender_classes.split(', ') : []; return myClasses.some(c => senderClasses.includes(c)); } }
+        if (m.recipient.startsWith('CLASS_')) return currentUser.role === 'director' || myClasses.includes(m.recipient.replace('CLASS_', ''));
+        if (m.recipient.startsWith('USER_')) return m.recipient.replace('USER_', '') === currentUser.id;
+        return false;
+    });
+
+    let threads = {};
+    msgs.forEach(m => {
+        let threadId = ''; let isGroup = false;
+        if (m.recipient === 'SCOPE_ALL' || m.recipient.startsWith('CLASS_')) { threadId = m.recipient; isGroup = true; } 
+        else { let targetId = m.sender_id === currentUser.id ? m.recipient.replace('USER_', '') : m.sender_id; threadId = 'USER_' + targetId; }
+        if (!threads[threadId] || threads[threadId].timestamp < m.timestamp) { threads[threadId] = { id: threadId, type: isGroup ? 'GROUP' : 'USER', lastMessage: m.is_deleted ? '🚫 Mensagem apagada' : m.message_text, timestamp: m.timestamp, sender_name: m.sender_name }; }
+    });
+
+    let sortedThreads = Object.values(threads).sort((a,b) => b.timestamp - a.timestamp);
+    if(sortedThreads.length === 0) { list.innerHTML = `<div class="p-8 text-center text-xs text-gray-400 font-medium">Nenhum chat ativo.<br>Clique no botão "+" acima para buscar contatos.</div>`; return; }
+
+    let html = '';
+    sortedThreads.forEach(t => {
+        let name = ''; let avatar = ''; let statusBadge = '';
+        if (t.type === 'GROUP') { name = t.id === 'SCOPE_ALL' ? (currentUser.role === 'director' ? 'Todos da Escola' : 'Minhas Turmas e Equipe') : 'Turma ' + t.id.replace('CLASS_', ''); avatar = generateGroupAvatar(name); } 
+        else {
+            let targetUid = t.id.replace('USER_', ''); let uObj = users.find(u => u.id === targetUid);
+            if (uObj) { name = uObj.name.replace(/\(.*?\)/g, '').trim(); avatar = uObj.avatar_url || generateAvatar(uObj.name, uObj.role); statusBadge = uObj.status ? `<span class="text-[9px] font-bold px-1.5 py-0.5 rounded bg-gray-100 text-gray-500 ml-1.5 shrink-0">${statusLabels[uObj.status] || uObj.status}</span>` : ''; } 
+            else { name = 'Ex-Colaborador'; avatar = generateAvatar('?', 'parent'); }
+        }
+        const timeStr = new Date(t.timestamp).toLocaleTimeString('pt-BR', {hour: '2-digit', minute:'2-digit'});
+        html += `<div onclick="openChat('${t.id}', '${t.type}', '${name.replace(/'/g, "\\'")}', '${avatar}')" class="chat-contact-item flex items-center gap-3.5 p-3.5 cursor-pointer hover:bg-gray-50 transition border-b border-gray-50"><img src="${avatar}" class="w-12 h-12 rounded-full object-cover shrink-0 border-2 border-gray-100 shadow-sm"><div class="flex-grow overflow-hidden"><div class="flex justify-between items-center mb-0.5"><h4 class="text-sm font-black text-gray-800 truncate flex items-center">${name}${statusBadge}</h4><span class="text-[9px] text-gray-400 font-bold">${timeStr}</span></div><p class="text-[11px] font-bold text-gray-400 truncate">${t.type==='GROUP'?`<b>${t.sender_name.replace(/\(.*?\)/g, '').trim()}:</b> `:''}${t.lastMessage || '📂 Anexo'}</p></div></div>`;
+    });
+    list.innerHTML = html;
+}
+
+async function openNewChatModal() {
+    const modal = document.getElementById('newChatModal'); const list = document.getElementById('newChatContactsList'); if(!modal || !list) return; modal.classList.remove('hidden');
+    list.innerHTML = '<div class="p-6 text-center text-xs text-gray-400 font-bold">Buscando diretório escolar...</div>';
     let users = await getFilteredData('users', 'name'); let classes = await getFilteredData('classes', 'name'); let students = await getFilteredData('students');
     let myClasses = [];
     if (currentUser.role === 'teacher' || currentUser.role === 'coordinator') { if (currentUser.class_name) myClasses = currentUser.class_name.split(', '); } 
     else if (currentUser.role === 'parent') { let childIds = String(currentUser.child_id).split(',').map(s=>s.trim()); let myChildren = students.filter(s => childIds.includes(String(s.id))); myClasses = myChildren.map(c => c.class_name); }
 
     let html = '';
-    const createItem = (id, type, name, subText, avatar) => { return `<div onclick="openChat('${id}', '${type}', '${name.replace(/'/g, "\\'")}', '${avatar}')" data-name="${name.toLowerCase()}" class="chat-contact-item flex items-center gap-3.5 p-3.5 cursor-pointer hover:bg-gray-50 transition border-b border-gray-50"><img src="${avatar}" class="w-12 h-12 rounded-full object-cover shrink-0 border-2 border-gray-100 shadow-sm"><div class="flex-grow overflow-hidden"><h4 class="text-sm font-black text-gray-800 truncate">${name}</h4><p class="text-[11px] font-bold text-gray-400 truncate">${subText}</p></div></div>`; };
+    const renderContactRow = (id, type, name, label, avatar, statusStr="") => { let statusTag = statusStr ? `<span class="text-[9px] font-bold text-gray-400 ml-1.5">${statusLabels[statusStr] || statusStr}</span>` : ''; return `<div onclick="selectNewChatContact('${id}', '${type}', '${name.replace(/'/g, "\\'")}', '${avatar}')" class="new-chat-row flex items-center gap-3 p-3 cursor-pointer hover:bg-purple-50/50 transition border-b border-gray-50"><img src="${avatar}" class="w-10 h-10 rounded-full object-cover shrink-0"><div class="overflow-hidden flex-grow"><h4 class="text-xs font-black text-gray-800 truncate flex items-center">${name}${statusTag}</h4><p class="text-[10px] font-bold text-purple-600 uppercase tracking-wide">${label}</p></div></div>`; };
 
     if (currentUser.role === 'director') {
-        html += `<div class="bg-gray-100 text-[10px] font-black text-gray-500 uppercase px-4 py-2 mt-2 tracking-wider">Grupos da Escola</div>`;
-        html += createItem('SCOPE_ALL', 'GROUP', 'Todos da Escola', 'Avisos Gerais', generateGroupAvatar('Escola'));
-        if(classes.length > 0) classes.forEach(c => html += createItem(`CLASS_${c.name}`, 'GROUP', `Turma ${c.name}`, 'Alunos e Professores', generateGroupAvatar(c.name)));
-        html += `<div class="bg-gray-100 text-[10px] font-black text-gray-500 uppercase px-4 py-2 mt-2 tracking-wider">Contatos Diretos</div>`;
-        users.filter(u => u.id !== currentUser.id && u.role !== 'admin').forEach(u => html += createItem(`USER_${u.id}`, 'USER', u.name.replace(/\(.*?\)/g, '').trim(), roleLabels[u.role] || u.role, u.avatar_url || generateAvatar(u.name, u.role)));
-    } 
-    else if (currentUser.role === 'coordinator') {
-        html += `<div class="bg-gray-100 text-[10px] font-black text-gray-500 uppercase px-4 py-2 mt-2 tracking-wider">Meus Grupos</div>`;
-        html += createItem('SCOPE_ALL', 'GROUP', 'Minhas Turmas e Equipe', 'Avisos Gerais', generateGroupAvatar('Coordenação'));
-        if(myClasses.length > 0) myClasses.forEach(c => html += createItem(`CLASS_${c}`, 'GROUP', `Turma ${c}`, 'Alunos e Professores', generateGroupAvatar(c)));
-        html += `<div class="bg-gray-100 text-[10px] font-black text-gray-500 uppercase px-4 py-2 mt-2 tracking-wider">Equipe Escolar e Pais</div>`;
-        users.filter(u => u.id !== currentUser.id && ['director', 'coordinator', 'teacher'].includes(u.role)).forEach(u => html += createItem(`USER_${u.id}`, 'USER', u.name.replace(/\(.*?\)/g, '').trim(), roleLabels[u.role], u.avatar_url || generateAvatar(u.name, u.role)));
-        let myStudents = students.filter(s => myClasses.includes(s.class_name)); let myStudentIds = myStudents.map(s => s.id);
-        users.filter(u => u.role === 'parent' && myStudentIds.includes(u.child_id) && u.id !== currentUser.id).forEach(u => html += createItem(`USER_${u.id}`, 'USER', u.name.replace(/\(.*?\)/g, '').trim(), 'Responsável', u.avatar_url || generateAvatar(u.name, u.role)));
-    }
-    else if (currentUser.role === 'teacher') {
-        if(myClasses.length > 0) { html += `<div class="bg-gray-100 text-[10px] font-black text-gray-500 uppercase px-4 py-2 mt-2 tracking-wider">Minhas Turmas</div>`; myClasses.forEach(c => html += createItem(`CLASS_${c}`, 'GROUP', `Turma ${c}`, 'Avisos para a sala', generateGroupAvatar(c))); }
-        html += `<div class="bg-gray-100 text-[10px] font-black text-gray-500 uppercase px-4 py-2 mt-2 tracking-wider">Equipe Escolar e Pais</div>`;
-        users.filter(u => u.id !== currentUser.id && ['director', 'coordinator', 'teacher'].includes(u.role)).forEach(u => html += createItem(`USER_${u.id}`, 'USER', u.name.replace(/\(.*?\)/g, '').trim(), roleLabels[u.role], u.avatar_url || generateAvatar(u.name, u.role)));
-        let myStudents = students.filter(s => myClasses.includes(s.class_name)); let myStudentIds = myStudents.map(s => s.id);
-        users.filter(u => u.role === 'parent' && myStudentIds.includes(u.child_id) && u.id !== currentUser.id).forEach(u => html += createItem(`USER_${u.id}`, 'USER', u.name.replace(/\(.*?\)/g, '').trim(), 'Responsável', u.avatar_url || generateAvatar(u.name, u.role)));
-    }
-    else if (currentUser.role === 'parent') {
-        html += `<div class="bg-gray-100 text-[10px] font-black text-gray-500 uppercase px-4 py-2 mt-2 tracking-wider">Contatos da Escola</div>`;
-        let allowedStaff = users.filter(u => u.id !== currentUser.id && (u.role === 'director' || (['coordinator', 'teacher'].includes(u.role) && u.class_name && myClasses.some(mc => u.class_name.includes(mc)))));
-        allowedStaff.forEach(u => html += createItem(`USER_${u.id}`, 'USER', u.name.replace(/\(.*?\)/g, '').trim(), roleLabels[u.role], u.avatar_url || generateAvatar(u.name, u.role)));
+        html += createHeadingSection('Grupos da Escola'); html += renderContactRow('SCOPE_ALL', 'GROUP', 'Todos da Escola', 'Canal Geral', generateGroupAvatar('Escola'));
+        if(classes.length > 0) classes.forEach(c => html += renderContactRow(`CLASS_${c.name}`, 'GROUP', `Turma ${c.name}`, 'Grupo da Sala', generateGroupAvatar(c.name)));
+        html += createHeadingSection('Contatos Individuais'); users.filter(u => u.id !== currentUser.id && u.role !== 'admin').forEach(u => html += renderContactRow(`USER_${u.id}`, 'USER', u.name.replace(/\(.*?\)/g, '').trim(), roleLabels[u.role] || u.role, u.avatar_url || generateAvatar(u.name, u.role), u.status));
+    } else if (currentUser.role === 'coordinator') {
+        html += createHeadingSection('Meus Grupos'); html += renderContactRow('SCOPE_ALL', 'GROUP', 'Minhas Turmas e Equipe', 'Canal Geral', generateGroupAvatar('Coordenação'));
+        if(myClasses.length > 0) myClasses.forEach(c => html += renderContactRow(`CLASS_${c}`, 'GROUP', `Turma ${c}`, 'Grupo da Sala', generateGroupAvatar(c)));
+        html += createHeadingSection('Equipe Escolar'); users.filter(u => u.id !== currentUser.id && ['director', 'coordinator', 'teacher'].includes(u.role)).forEach(u => html += renderContactRow(`USER_${u.id}`, 'USER', u.name.replace(/\(.*?\)/g, '').trim(), roleLabels[u.role], u.avatar_url || generateAvatar(u.name, u.role), u.status));
+        html += createHeadingSection('Responsáveis (Minhas Turmas)'); let myStudents = students.filter(s => myClasses.includes(s.class_name)); let myStudentIds = myStudents.map(s => s.id); users.filter(u => u.role === 'parent' && myStudentIds.includes(u.child_id)).forEach(u => html += renderContactRow(`USER_${u.id}`, 'USER', u.name.replace(/\(.*?\)/g, '').trim(), 'Responsável', u.avatar_url || generateAvatar(u.name, u.role), u.status));
+    } else if (currentUser.role === 'teacher') {
+        if(myClasses.length > 0) { html += createHeadingSection('Minhas Turmas'); myClasses.forEach(c => html += renderContactRow(`CLASS_${c}`, 'GROUP', `Turma ${c}`, 'Grupo da Sala', generateGroupAvatar(c))); }
+        html += createHeadingSection('Equipe Escolar'); users.filter(u => u.id !== currentUser.id && ['director', 'coordinator', 'teacher'].includes(u.role)).forEach(u => html += renderContactRow(`USER_${u.id}`, 'USER', u.name.replace(/\(.*?\)/g, '').trim(), roleLabels[u.role], u.avatar_url || generateAvatar(u.name, u.role), u.status));
+        html += createHeadingSection('Responsáveis'); let myStudents = students.filter(s => myClasses.includes(s.class_name)); let myStudentIds = myStudents.map(s => s.id); users.filter(u => u.role === 'parent' && myStudentIds.includes(u.child_id)).forEach(u => html += renderContactRow(`USER_${u.id}`, 'USER', u.name.replace(/\(.*?\)/g, '').trim(), 'Responsável', u.avatar_url || generateAvatar(u.name, u.role), u.status));
+    } else if (currentUser.role === 'parent') {
+        html += createHeadingSection('Contatos Autorizados'); let allowedStaff = users.filter(u => u.id !== currentUser.id && (u.role === 'director' || (['coordinator', 'teacher'].includes(u.role) && u.class_name && myClasses.some(mc => u.class_name.includes(mc))))); allowedStaff.forEach(u => html += renderContactRow(`USER_${u.id}`, 'USER', u.name.replace(/\(.*?\)/g, '').trim(), roleLabels[u.role], u.avatar_url || generateAvatar(u.name, u.role), u.status));
     }
     list.innerHTML = html;
 }
 
-function filterChatContacts() { const term = document.getElementById('chatSearchInput').value.toLowerCase(); document.querySelectorAll('.chat-contact-item').forEach(el => { const name = el.getAttribute('data-name'); el.style.display = name.includes(term) ? '' : 'none'; }); }
+function createHeadingSection(title) { return `<div class="bg-purple-50 text-[10px] font-black text-purple-700 uppercase px-3 py-1.5 mt-2 rounded-lg tracking-wider">${title}</div>`; }
+function closeNewChatModal() { document.getElementById('newChatModal').classList.add('hidden'); document.getElementById('newChatSearchInput').value = ''; }
+function filterNewChatContacts() { const term = document.getElementById('newChatSearchInput').value.toLowerCase(); document.querySelectorAll('.new-chat-row').forEach(el => { const text = el.innerText.toLowerCase(); el.style.display = text.includes(term) ? '' : 'none'; }); }
+function selectNewChatContact(id, type, name, avatar) { closeNewChatModal(); openChat(id, type, name, avatar); }
 
 function openChat(id, type, name, avatar) {
     activeChatId = id; activeChatType = type; activeChatName = name; activeChatAvatar = avatar;
-    document.getElementById('activeChatName').innerText = name; document.getElementById('activeChatStatus').innerText = type === 'GROUP' ? 'Grupo Oficial' : 'Conversa Segura'; document.getElementById('activeChatAvatar').src = avatar; document.getElementById('chatInputArea').classList.remove('hidden');
+    document.getElementById('activeChatName').innerText = name; document.getElementById('activeChatStatus').innerText = type === 'GROUP' ? 'Grupo Oficial' : 'Conversa Segura'; document.getElementById('activeChatAvatar').src = avatar; document.getElementById('chatInputArea').classList.remove('hidden'); document.getElementById('noChatSelectedMsg').classList.add('hidden');
     if (window.innerWidth < 768) { document.getElementById('chatSidebar').classList.add('hidden'); document.getElementById('chatArea').classList.remove('hidden'); document.getElementById('chatArea').classList.add('flex'); }
     loadChat();
 }
+function closeChatAreaMobile() { document.getElementById('chatSidebar').classList.remove('hidden'); document.getElementById('chatArea').classList.add('hidden'); document.getElementById('chatArea').classList.remove('flex'); activeChatId = null; renderChatContacts(); }
+function filterChatContacts() { const term = document.getElementById('chatSearchInput').value.toLowerCase(); document.querySelectorAll('.chat-contact-item').forEach(el => { const name = el.getAttribute('data-name'); el.style.display = name.includes(term) ? '' : 'none'; }); }
 
-function closeChatAreaMobile() { document.getElementById('chatSidebar').classList.remove('hidden'); document.getElementById('chatArea').classList.add('hidden'); document.getElementById('chatArea').classList.remove('flex'); activeChatId = null; }
-
-function handleFileSelection() { 
-    const fileInput = document.getElementById('chatFileInput'); 
-    if (fileInput && fileInput.files.length > 0) { 
-        const file = fileInput.files[0];
-        if (file.size > 1.5 * 1024 * 1024) { alert("O arquivo é muito grande. O limite máximo é de 1.5MB."); clearFileSelection(); return; }
-        selectedFileName = file.name; document.getElementById('fileNameDisplay').innerText = selectedFileName; document.getElementById('chatAttachmentPreview').classList.remove('hidden'); 
-        const reader = new FileReader(); reader.onload = function(e) { selectedFileBase64 = e.target.result; }; reader.readAsDataURL(file);
-    } 
-}
-
+function handleFileSelection() { const fileInput = document.getElementById('chatFileInput'); if (fileInput && fileInput.files.length > 0) { const file = fileInput.files[0]; if (file.size > 1.5 * 1024 * 1024) { alert("O arquivo é muito grande. O limite máximo é de 1.5MB."); clearFileSelection(); return; } selectedFileName = file.name; document.getElementById('fileNameDisplay').innerText = selectedFileName; document.getElementById('chatAttachmentPreview').classList.remove('hidden'); const reader = new FileReader(); reader.onload = function(e) { selectedFileBase64 = e.target.result; }; reader.readAsDataURL(file); } }
 function clearFileSelection() { selectedFileName = null; selectedFileBase64 = null; if(document.getElementById('chatFileInput')) document.getElementById('chatFileInput').value = ''; document.getElementById('chatAttachmentPreview').classList.add('hidden'); }
 
 async function sendMessage(e) { 
@@ -504,52 +374,36 @@ async function sendMessage(e) {
 }
 
 function downloadRealAttachment(msgId, fileName) { const base64Data = window.chatAttachments[msgId]; if(!base64Data) { alert("O arquivo não está disponível ou foi corrompido."); return; } const a = document.createElement('a'); a.href = base64Data; a.download = fileName; document.body.appendChild(a); a.click(); document.body.removeChild(a); }
-
 async function editChatMessage(id) { const msg = loadedMessages.find(x => x.id === id); if(!msg) return; const newText = prompt("Edite sua mensagem:", msg.message_text); if(newText !== null && newText.trim() !== "" && newText !== msg.message_text) { try { await db.collection('messages').doc(id).update({ message_text: newText.trim(), is_edited: true }); loadChat(); } catch(e) { alert("Erro ao editar."); } } }
-
 async function deleteChatMessage(id) { if(confirm("Deseja apagar esta mensagem para todos?")) { try { await db.collection('messages').doc(id).update({ message_text: "🚫 Mensagem apagada pelo autor.", file_name: null, file_data: null, is_deleted: true }); loadChat(); } catch(e) { alert("Erro ao apagar."); } } }
 
 async function loadChat() { 
     const box = document.getElementById('chatMessagesBox'); if(!box || !activeChatId) return; 
-    box.innerHTML = ''; window.chatAttachments = {}; let msgs = await getFilteredData('messages', 'timestamp'); 
-    
+    box.innerHTML = ''; window.chatAttachments = {}; let msgs = await getFilteredData('messages', 'timestamp'); let users = await getFilteredData('users');
+    if (activeChatType === 'USER') { let targetUid = activeChatId.replace('USER_', ''); let uObj = users.find(u => u.id === targetUid); if (uObj && uObj.status) document.getElementById('activeChatStatus').innerText = statusLabels[uObj.status] || uObj.status; }
     msgs = msgs.filter(m => {
         if (activeChatType === 'GROUP') { return m.recipient === activeChatId; } 
         else if (activeChatType === 'USER') { const targetUserId = activeChatId.replace('USER_', ''); return (m.sender_id === currentUser.id && m.recipient === activeChatId) || (m.sender_id === targetUserId && m.recipient === `USER_${currentUser.id}`); }
         return false;
     });
-
-    loadedMessages = msgs; 
-    if(msgs.length === 0) { box.innerHTML = `<div class="absolute inset-0 flex items-center justify-center pointer-events-none"><div class="bg-white/90 backdrop-blur px-8 py-4 rounded-full shadow-lg text-xs font-bold text-gray-500 border border-gray-100"><i class="ph ph-hand-waving text-lg align-middle mr-1 text-[rgb(8,33,223)]"></i> Envie a primeira mensagem para começar.</div></div>`; }
-
+    loadedMessages = msgs; if(msgs.length === 0) { box.innerHTML = `<div class="absolute inset-0 flex items-center justify-center pointer-events-none"><div class="bg-white/90 backdrop-blur px-8 py-4 rounded-full shadow-lg text-xs font-bold text-gray-500 border border-gray-100"><i class="ph ph-hand-waving text-lg align-middle mr-1 text-[rgb(8,33,223)]"></i> Diga Olá!</div></div>`; }
     msgs.forEach(m => { 
-        const isMe = m.sender_id === currentUser.id; 
-        const bubbleClass = isMe ? 'bg-[#d9fdd3] text-gray-800 ml-auto rounded-tr-none' : 'bg-white text-gray-800 mr-auto rounded-tl-none'; 
-        const labelRole = roleLabels[m.sender_role] || 'Usuário'; 
-        const avatarToUse = m.sender_avatar || generateAvatar(m.sender_name, m.sender_role);
-        
-        let attachmentHtml = '';
-        if(m.file_name && !m.is_deleted) { if(m.file_data) window.chatAttachments[m.id] = m.file_data; attachmentHtml = `<div onclick="downloadRealAttachment('${m.id}', '${m.file_name}')" class="mt-2 p-2.5 rounded-lg bg-black/5 hover:bg-black/10 transition text-[11px] cursor-pointer flex items-center gap-2 font-bold border border-black/5" title="Baixar anexo"><i class="ph ph-file-text text-lg shrink-0 opacity-70"></i><span class="truncate flex-grow text-left">${m.file_name}</span><i class="ph ph-download text-sm shrink-0 opacity-70"></i></div>`; }
-        
-        const editedLabel = m.is_edited && !m.is_deleted ? '<span class="text-[9px] italic opacity-60 ml-2 font-bold">(editada)</span>' : '';
-        const displayText = m.is_deleted ? `<i class="ph ph-prohibit align-middle"></i> Mensagem apagada pelo autor.` : (m.message_text || '');
-        const textClass = m.is_deleted ? 'italic opacity-60' : 'font-medium';
-
+        const isMe = m.sender_id === currentUser.id; const bubbleClass = isMe ? 'bg-[#d9fdd3] text-gray-800 ml-auto rounded-tr-none' : 'bg-white text-gray-800 mr-auto rounded-tl-none'; const labelRole = roleLabels[m.sender_role] || 'Usuário'; 
+        let currentSender = users.find(u => u.id === m.sender_id); const avatarToUse = currentSender?.avatar_url || m.sender_avatar || generateAvatar(m.sender_name, m.sender_role);
+        let attachmentHtml = ''; if(m.file_name && !m.is_deleted) { if(m.file_data) window.chatAttachments[m.id] = m.file_data; attachmentHtml = `<div onclick="downloadRealAttachment('${m.id}', '${m.file_name}')" class="mt-2 p-2.5 rounded-lg bg-black/5 hover:bg-black/10 transition text-[11px] cursor-pointer flex items-center gap-2 font-bold border border-black/5" title="Baixar anexo"><i class="ph ph-file-text text-lg shrink-0 opacity-70"></i><span class="truncate flex-grow text-left">${m.file_name}</span><i class="ph ph-download text-sm shrink-0 opacity-70"></i></div>`; }
+        const editedLabel = m.is_edited && !m.is_deleted ? '<span class="text-[9px] italic opacity-60 ml-2 font-bold">(editada)</span>' : ''; const displayText = m.is_deleted ? `<i class="ph ph-prohibit align-middle"></i> Mensagem apagada pelo autor.` : (m.message_text || ''); const textClass = m.is_deleted ? 'italic opacity-60' : 'font-medium';
         const actions = (isMe && !m.is_deleted) ? `<div class="flex justify-end gap-2 mt-1 pt-1 opacity-0 group-hover:opacity-100 transition absolute right-2 top-1.5"><button onclick="editChatMessage('${m.id}')" title="Editar" class="text-gray-400 hover:text-[rgb(8,33,223)] bg-white/90 backdrop-blur rounded p-1 shadow-sm"><i class="ph ph-pencil-simple text-sm"></i></button><button onclick="deleteChatMessage('${m.id}')" title="Apagar" class="text-gray-400 hover:text-red-500 bg-white/90 backdrop-blur rounded p-1 shadow-sm"><i class="ph ph-trash text-sm"></i></button></div>` : '';
-
-        let msgHtml = '';
-        const timeStr = new Date(m.timestamp).toLocaleTimeString('pt-BR', {hour: '2-digit', minute:'2-digit'});
-
-        if (isMe) {
-            msgHtml = `<div class="flex justify-end mb-3 w-full fade-in group relative"><div class="max-w-[85%] p-3 rounded-2xl shadow-sm text-sm relative ${bubbleClass}"><p class="leading-relaxed whitespace-pre-wrap pr-12 ${textClass}">${displayText}</p>${attachmentHtml}<span class="text-[9px] text-gray-500 float-right mt-1 ml-2 font-bold">${timeStr}${editedLabel}</span>${actions}</div></div>`;
-        } else {
-            msgHtml = `<div class="flex justify-start mb-3 w-full fade-in"><img src="${avatarToUse}" class="w-9 h-9 rounded-full border border-gray-200 bg-white mr-3 mt-auto shrink-0 object-cover shadow-sm"><div class="max-w-[80%] p-3 rounded-2xl shadow-sm text-sm relative ${bubbleClass}"><span class="text-[10px] font-black block mb-1 ${m.sender_role === 'director' ? 'text-red-500' : 'text-[rgb(8,33,223)]'}">${m.sender_name.replace(/\(.*?\)/g, '').trim()} <span class="font-bold text-gray-400 text-[9px] uppercase tracking-wider ml-1">(${labelRole})</span></span><p class="leading-relaxed whitespace-pre-wrap pr-12 ${textClass}">${displayText}</p>${attachmentHtml}<span class="text-[9px] text-gray-400 float-right mt-1 ml-2 font-bold">${timeStr}${editedLabel}</span></div></div>`;
-        }
+        let msgHtml = ''; const timeStr = new Date(m.timestamp).toLocaleTimeString('pt-BR', {hour: '2-digit', minute:'2-digit'});
+        if (isMe) { msgHtml = `<div class="flex justify-end mb-3 w-full fade-in group relative"><div class="max-w-[85%] p-3 rounded-2xl shadow-sm text-sm relative ${bubbleClass}"><p class="leading-relaxed whitespace-pre-wrap pr-12 ${textClass}">${displayText}</p>${attachmentHtml}<span class="text-[9px] text-gray-500 float-right mt-1 ml-2 font-bold">${timeStr}${editedLabel}</span>${actions}</div></div>`; } 
+        else { msgHtml = `<div class="flex justify-start mb-3 w-full fade-in"><img src="${avatarToUse}" class="w-9 h-9 rounded-full border border-gray-200 bg-white mr-3 mt-auto shrink-0 object-cover shadow-sm"><div class="max-w-[80%] p-3 rounded-2xl shadow-sm text-sm relative ${bubbleClass}"><span class="text-[10px] font-black block mb-1 ${m.sender_role === 'director' ? 'text-red-500' : 'text-[rgb(8,33,223)]'}">${m.sender_name.replace(/\(.*?\)/g, '').trim()} <span class="font-bold text-gray-400 text-[9px] uppercase tracking-wider ml-1">(${labelRole})</span></span><p class="leading-relaxed whitespace-pre-wrap pr-12 ${textClass}">${displayText}</p>${attachmentHtml}<span class="text-[9px] text-gray-400 float-right mt-1 ml-2 font-bold">${timeStr}${editedLabel}</span></div></div>`; }
         box.innerHTML += msgHtml; 
     }); 
     box.scrollTop = box.scrollHeight; 
 }
 
+// ==========================================
+// EXCLUSÃO GERAL DO SISTEMA E FIM DO SCRIPT
+// ==========================================
 function openDeleteModal(id, type) { deletingEventId = id; deleteType = type; document.getElementById('deleteModal').classList.remove('hidden'); }
 function closeDeleteModal() { deletingEventId = null; deleteType = null; document.getElementById('deleteModal').classList.add('hidden'); }
 async function executeDeleteEvent() { 
@@ -559,5 +413,5 @@ async function executeDeleteEvent() {
     if(deleteType==='event') loadEvents(); if(deleteType==='student') loadAdminStudents(); if(deleteType==='user') loadAdminStaff(); if(deleteType==='class') loadAdminClasses(); if(deleteType==='subject' || deleteType==='global_subject') loadAdminSubjects(); 
     if(deleteType==='school') { loadAdminSchools(); populateAdminSchoolsDropdown(); } 
     if(deleteType==='grade') { const sName = document.getElementById('lblSelectedStudentName').innerText; const sClass = document.getElementById('selectedStudentClassLbl').innerText; selectStudentForGrades(currentGradeStudentId, sName, sClass); } 
-    if(deleteType==='note') loadNotes();
+    if(deleteType==='note') loadNotes(); 
 }
