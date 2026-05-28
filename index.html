@@ -229,7 +229,7 @@
 
                 <div id="tab-grades" class="view-panel hidden bg-white rounded-3xl shadow-2xl p-4 md:p-6 w-full h-full flex flex-col">
                     <div class="border-b pb-4 mb-4 flex justify-between items-center shrink-0">
-                        <h3 class="font-black text-gray-800 text-lg flex items-center gap-2"><div class="w-8 h-8 rounded-lg bg-blue-100 text-blue-600 flex items-center justify-center"><i class="ph ph-file-text text-xl"></i></div> Central de Notas</h3>
+                        <h3 class="font-black text-gray-800 text-lg flex items-center gap-2"><div class="w-8 h-8 rounded-lg bg-blue-100 text-blue-600 flex items-center justify-center"><i class="ph ph-file-text text-xl"></i></div> Boletim Eletrônico</h3>
                         <span id="lblGradingSystem" class="text-xs bg-gray-100 text-gray-600 px-3 py-1.5 rounded-lg font-bold border">Bimestral</span>
                     </div>
                     
@@ -254,7 +254,7 @@
                             
                             <div class="p-4 bg-white border-b flex justify-between items-center shrink-0 z-10 shadow-sm">
                                 <div class="flex items-center gap-2">
-                                    <h4 class="font-black text-gray-800 text-sm">Boletim Escolar</h4>
+                                    <h4 class="font-black text-gray-800 text-sm">Boletim do Aluno</h4>
                                     <span id="selectedStudentClassLbl" class="text-[10px] text-gray-500 bg-gray-100 px-2 py-0.5 rounded border border-gray-200 font-bold uppercase hidden"></span>
                                 </div>
                                 <div id="gradesPeriodFilterContainer" class="hidden flex items-center gap-2">
@@ -335,11 +335,50 @@
                     </div>
                 </div>
 
+                <div id="tab-notes" class="view-panel hidden bg-white rounded-3xl shadow-2xl p-4 md:p-6 w-full h-full flex flex-col space-y-5">
+                    <div class="border-b pb-4 shrink-0">
+                        <h3 class="font-black text-gray-800 text-lg flex items-center gap-2"><div class="w-8 h-8 rounded-lg bg-yellow-100 text-yellow-600 flex items-center justify-center"><i class="ph ph-note-pencil text-xl"></i></div> Minhas Anotações</h3>
+                    </div>
+                    
+                    <div class="flex flex-col md:flex-row gap-5 flex-grow overflow-hidden min-h-[500px]">
+                        <div class="md:w-1/3 flex flex-col bg-yellow-50/30 rounded-2xl border border-yellow-100 shadow-sm p-5 shrink-0 h-auto md:h-full overflow-y-auto">
+                            <h4 id="noteFormTitle" class="text-xs font-black text-yellow-700 uppercase tracking-wider mb-4 border-b border-yellow-200 pb-2">Nova Anotação</h4>
+                            <form id="noteForm" onsubmit="handleNoteSubmit(event)" class="space-y-4 flex flex-col flex-grow">
+                                <div>
+                                    <label class="block font-bold text-yellow-800 mb-1 ml-1 text-[10px] uppercase">Título</label>
+                                    <input type="text" id="noteTitle" required placeholder="Ex: Pauta da Reunião" class="w-full p-3 border border-yellow-200 rounded-xl outline-none focus:border-yellow-500 text-sm font-bold bg-white">
+                                </div>
+                                <div>
+                                    <label class="block font-bold text-yellow-800 mb-1 ml-1 text-[10px] uppercase">Formato</label>
+                                    <select id="noteType" class="w-full p-3 border border-yellow-200 rounded-xl outline-none focus:border-yellow-500 text-xs font-bold text-gray-600 bg-white cursor-pointer">
+                                        <option value="text">Texto Normal Livre</option>
+                                        <option value="list">Lista (Itens separados por Enter)</option>
+                                    </select>
+                                </div>
+                                <div class="flex-grow flex flex-col min-h-[150px]">
+                                    <label class="block font-bold text-yellow-800 mb-1 ml-1 text-[10px] uppercase">Conteúdo</label>
+                                    <textarea id="noteContent" required placeholder="Escreva suas ideias aqui..." class="w-full flex-grow p-3 border border-yellow-200 rounded-xl outline-none focus:border-yellow-500 text-sm resize-none bg-white font-medium text-gray-700"></textarea>
+                                </div>
+                                <div class="flex gap-2 shrink-0 pt-2 border-t border-yellow-100">
+                                    <button type="button" id="btnCancelNote" onclick="cancelNoteEdit()" class="hidden flex-1 bg-gray-200 hover:bg-gray-300 text-gray-700 py-3 rounded-xl font-bold transition text-xs shadow-sm">Cancelar</button>
+                                    <button type="submit" id="btnSaveNote" class="flex-1 bg-yellow-500 hover:bg-yellow-600 text-white py-3 rounded-xl font-bold shadow-md transition text-xs">Salvar Anotação</button>
+                                </div>
+                            </form>
+                        </div>
+                        
+                        <div class="md:w-2/3 flex flex-col bg-gray-50 rounded-2xl border border-gray-200 shadow-sm p-5 flex-grow md:h-full overflow-hidden">
+                            <h4 class="text-xs font-black uppercase text-gray-500 tracking-wider border-b border-gray-200 pb-3 mb-4 shrink-0">Anotações Salvas</h4>
+                            <div id="notesListContainer" class="grid grid-cols-1 sm:grid-cols-2 gap-4 overflow-y-auto no-scrollbar content-start pb-4">
+                                </div>
+                        </div>
+                    </div>
+                </div>
+
                 <div id="tab-messages" class="view-panel hidden bg-white rounded-3xl shadow-2xl flex overflow-hidden flex-grow md:h-[600px] min-h-[500px] w-full relative">
                     
                     <div id="chatSidebar" class="w-full md:w-1/3 border-r border-gray-200 flex flex-col bg-white shrink-0 absolute md:relative z-10 h-full transition-transform duration-300">
                         <div class="p-5 border-b border-gray-100 bg-white flex items-center justify-between shrink-0">
-                            <span class="text-lg font-black text-gray-800 flex items-center gap-2"><div class="w-8 h-8 rounded-lg bg-purple-100 text-purple-600 flex items-center justify-center"><i class="ph ph-chats text-xl"></i></div> Mensagens</span>
+                            <span class="text-lg font-black text-gray-800 flex items-center gap-2"><div class="w-8 h-8 rounded-lg bg-purple-100 text-purple-600 flex items-center justify-center"><i class="ph ph-chats text-xl"></i></div> Chat Oficial</span>
                         </div>
                         <div class="p-3 border-b border-gray-100 shrink-0 bg-gray-50/50">
                             <div class="relative">
@@ -359,7 +398,7 @@
                             <button onclick="closeChatAreaMobile()" class="md:hidden text-gray-500 hover:bg-gray-100 p-2 rounded-xl transition"><i class="ph ph-arrow-left text-xl"></i></button>
                             <img id="activeChatAvatar" src="https://ui-avatars.com/api/?name=IC&background=e2e8f0" class="w-11 h-11 rounded-full border-2 border-gray-100 object-cover bg-white shadow-sm">
                             <div class="flex flex-col">
-                                <h4 id="activeChatName" class="text-base font-black text-gray-800 leading-tight">Mural de Mensagens</h4>
+                                <h4 id="activeChatName" class="text-base font-black text-gray-800 leading-tight">Chat de Mensagens</h4>
                                 <span id="activeChatStatus" class="text-[11px] font-bold text-purple-600 uppercase tracking-wider mt-0.5">Selecione uma conversa ao lado</span>
                             </div>
                         </div>
