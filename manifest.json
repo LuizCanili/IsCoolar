@@ -14,7 +14,7 @@
       "purpose": "any maskable"
     },
     {
-      "src": "/icon-master.png",
+      "src": "icon-master.png",
       "sizes": "192x192",
       "type": "image/png"
     }
