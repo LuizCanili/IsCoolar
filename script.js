@@ -374,11 +374,24 @@ async function loadAttendanceClass() {
     stds.forEach(s => { 
         let myRecord = todayAtt.find(a => a.student_id === s.id); 
         let isP = myRecord && myRecord.status === 'Presente' ? 'checked' : '', isF = myRecord && myRecord.status === 'Falta' ? 'checked' : ''; 
-        list.innerHTML += `<div class="attendance-row flex justify-between items-center bg-gray-50 hover:bg-white p-3 rounded-xl border border-gray-100 shadow-sm transition" data-id="${s.id}"><span class="font-black text-gray-800 text-xs">${s.name}</span><div class="flex gap-3 bg-white p-1.5 rounded-lg border border-gray-200 shadow-inner"><label class="flex items-center gap-1.5 cursor-pointer px-3 py-1.5 hover:bg-green-100 rounded-md transition text-green-700 font-bold text-xs"><input type="radio" name="att_${s.id}" value="Presente" ${isP} class="w-3.5 h-3.5 accent-green-600"> Presente</label><label class="flex items-center gap-1.5 cursor-pointer px-3 py-1.5 hover:bg-red-100 rounded-md transition text-red-700 font-bold text-xs"><input type="radio" name="att_${s.id}" value="Falta" ${isF} class="w-3.5 h-3.5 accent-red-600"> Falta</label></div></div>`; 
+        
+        // UX MELHORADA: flex-col no mobile, botões flex-1 (largos), e sm:flex-row para o PC
+        list.innerHTML += `
+            <div class="attendance-row flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 bg-gray-50 hover:bg-white p-3 md:p-4 rounded-xl border border-gray-100 shadow-sm transition" data-id="${s.id}">
+                <span class="font-black text-gray-800 text-sm">${s.name}</span>
+                <div class="flex w-full sm:w-auto gap-2 bg-white p-1 rounded-lg border border-gray-200 shadow-inner">
+                    <label class="flex-1 sm:flex-none flex items-center justify-center gap-1.5 cursor-pointer px-3 py-2.5 hover:bg-green-100 rounded-md transition text-green-700 font-bold text-xs">
+                        <input type="radio" name="att_${s.id}" value="Presente" ${isP} class="w-4 h-4 accent-green-600"> Presente
+                    </label>
+                    <label class="flex-1 sm:flex-none flex items-center justify-center gap-1.5 cursor-pointer px-3 py-2.5 hover:bg-red-100 rounded-md transition text-red-700 font-bold text-xs">
+                        <input type="radio" name="att_${s.id}" value="Falta" ${isF} class="w-4 h-4 accent-red-600"> Falta
+                    </label>
+                </div>
+            </div>`; 
     }); 
     
     document.getElementById('btnSaveAttendance').classList.remove('hidden'); 
-    loadStaffAttendanceReport(className); // Carrega os dados para a aba 2 em segundo plano
+    loadStaffAttendanceReport(className); 
 }
 
 async function saveBulkAttendance() { 
