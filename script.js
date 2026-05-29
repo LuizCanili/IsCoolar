@@ -281,19 +281,35 @@ async function renderChatContacts() {
     else if (currentUser.role === 'parent') { let childIds = String(currentUser.child_id).split(',').map(s=>s.trim()); let myChildren = students.filter(s => childIds.includes(String(s.id))); myClasses = myChildren.map(c => c.class_name); }
 
     msgs = msgs.filter(m => {
-        if (!m.recipient || m.recipient === 'ALL' || m.sender_id === currentUser.id) return true;
-        if (m.recipient === 'SCOPE_ALL') { if (m.sender_role === 'director' || currentUser.role === 'director') return true; if (m.sender_role === 'coordinator') { if (currentUser.role !== 'parent') return true; let senderClasses = m.sender_classes ? m.sender_classes.split(', ') : []; return myClasses.some(c => senderClasses.includes(c)); } }
-        if (m.recipient.startsWith('CLASS_')) return currentUser.role === 'director' || myClasses.includes(m.recipient.replace('CLASS_', ''));
-        if (m.recipient.startsWith('USER_')) return m.recipient.replace('USER_', '') === currentUser.id;
+        let rec = m.recipient || 'SCOPE_ALL';
+        if (rec === 'ALL' || rec === 'SCOPE_ALL') { 
+            if (m.sender_role === 'director' || currentUser.role === 'director') return true; 
+            if (m.sender_role === 'coordinator') { 
+                if (currentUser.role !== 'parent') return true; 
+                let senderClasses = m.sender_classes ? m.sender_classes.split(', ') : []; 
+                return myClasses.some(c => senderClasses.includes(c)); 
+            } 
+            return true; 
+        }
+        if (rec.startsWith('CLASS_')) return currentUser.role === 'director' || myClasses.includes(rec.replace('CLASS_', ''));
+        if (rec.startsWith('USER_')) return rec.replace('USER_', '') === currentUser.id || m.sender_id === currentUser.id;
         return false;
     });
 
     let threads = {};
     msgs.forEach(m => {
+        let rec = m.recipient || 'SCOPE_ALL';
         let threadId = ''; let isGroup = false;
-        if (m.recipient === 'SCOPE_ALL' || m.recipient.startsWith('CLASS_')) { threadId = m.recipient; isGroup = true; } 
-        else { let targetId = m.sender_id === currentUser.id ? m.recipient.replace('USER_', '') : m.sender_id; threadId = 'USER_' + targetId; }
-        if (!threads[threadId] || threads[threadId].timestamp < m.timestamp) { threads[threadId] = { id: threadId, type: isGroup ? 'GROUP' : 'USER', lastMessage: m.is_deleted ? '🚫 Mensagem apagada' : m.message_text, timestamp: m.timestamp, sender_name: m.sender_name }; }
+        if (rec === 'SCOPE_ALL' || rec === 'ALL' || rec.startsWith('CLASS_')) { 
+            threadId = (rec === 'ALL') ? 'SCOPE_ALL' : rec; 
+            isGroup = true; 
+        } else { 
+            let targetId = m.sender_id === currentUser.id ? rec.replace('USER_', '') : m.sender_id; 
+            threadId = 'USER_' + targetId; 
+        }
+        if (!threads[threadId] || threads[threadId].timestamp < m.timestamp) { 
+            threads[threadId] = { id: threadId, type: isGroup ? 'GROUP' : 'USER', lastMessage: m.is_deleted ? '🚫 Mensagem apagada' : m.message_text, timestamp: m.timestamp, sender_name: m.sender_name }; 
+        }
     });
 
     let sortedThreads = Object.values(threads).sort((a,b) => b.timestamp - a.timestamp);
@@ -302,8 +318,17 @@ async function renderChatContacts() {
     let html = '';
     sortedThreads.forEach(t => {
         let name = ''; let avatar = ''; let statusBadge = '';
-        if (t.type === 'GROUP') { name = t.id === 'SCOPE_ALL' ? (currentUser.role === 'director' ? 'Todos da Escola' : 'Minhas Turmas e Equipe') : 'Turma ' + t.id.replace('CLASS_', ''); avatar = generateGroupAvatar(name); } 
-        else {
+        if (t.type === 'GROUP') { 
+            if (t.id === 'SCOPE_ALL') {
+                name = currentUser.role === 'director' ? 'Todos da Escola' : 'Minhas Turmas e Equipe';
+                avatar = generateGroupAvatar(currentUser.role === 'director' ? 'Escola' : 'Coordenação'); 
+            } else {
+                let className = t.id.replace('CLASS_', '');
+                name = 'Turma ' + className; 
+                // AQUI FOI CORRIGIDO: Passa apenas "1º A" para o gerador de imagem em vez de "Turma 1º A"
+                avatar = generateGroupAvatar(className); 
+            }
+        } else {
             let targetUid = t.id.replace('USER_', ''); let uObj = users.find(u => u.id === targetUid);
             if (uObj) { name = uObj.name.replace(/\(.*?\)/g, '').trim(); avatar = uObj.avatar_url || generateAvatar(uObj.name, uObj.role); statusBadge = uObj.status ? `<span class="text-[9px] font-bold px-1.5 py-0.5 rounded bg-gray-100 text-gray-500 ml-1.5 shrink-0">${statusLabels[uObj.status] || uObj.status}</span>` : ''; } 
             else { name = 'Ex-Colaborador'; avatar = generateAvatar('?', 'parent'); }
@@ -350,9 +375,26 @@ function filterNewChatContacts() { const term = document.getElementById('newChat
 function selectNewChatContact(id, type, name, avatar) { closeNewChatModal(); openChat(id, type, name, avatar); }
 
 function openChat(id, type, name, avatar) {
-    activeChatId = id; activeChatType = type; activeChatName = name; activeChatAvatar = avatar;
-    document.getElementById('activeChatName').innerText = name; document.getElementById('activeChatStatus').innerText = type === 'GROUP' ? 'Grupo Oficial' : 'Conversa Segura'; document.getElementById('activeChatAvatar').src = avatar; document.getElementById('chatInputArea').classList.remove('hidden'); document.getElementById('noChatSelectedMsg').classList.add('hidden');
-    if (window.innerWidth < 768) { document.getElementById('chatSidebar').classList.add('hidden'); document.getElementById('chatArea').classList.remove('hidden'); document.getElementById('chatArea').classList.add('flex'); }
+    activeChatId = id; 
+    activeChatType = type; 
+    activeChatName = name; 
+    activeChatAvatar = avatar;
+    
+    document.getElementById('activeChatName').innerText = name; 
+    document.getElementById('activeChatStatus').innerText = type === 'GROUP' ? 'Grupo Oficial' : 'Conversa Segura'; 
+    document.getElementById('activeChatAvatar').src = avatar; 
+    document.getElementById('chatInputArea').classList.remove('hidden'); 
+    
+    // Limpa a tela IMEDIATAMENTE antes do Firebase responder para não misturar conversas
+    const box = document.getElementById('chatMessagesBox');
+    if(box) box.innerHTML = '<div class="absolute inset-0 flex items-center justify-center pointer-events-none"><div class="bg-white/90 backdrop-blur px-8 py-4 rounded-full shadow-lg text-xs font-bold text-gray-500 border border-gray-100">Carregando conversa...</div></div>';
+
+    if (window.innerWidth < 768) { 
+        document.getElementById('chatSidebar').classList.add('hidden'); 
+        document.getElementById('chatArea').classList.remove('hidden'); 
+        document.getElementById('chatArea').classList.add('flex'); 
+    }
+    
     loadChat();
 }
 function closeChatAreaMobile() { document.getElementById('chatSidebar').classList.remove('hidden'); document.getElementById('chatArea').classList.add('hidden'); document.getElementById('chatArea').classList.remove('flex'); activeChatId = null; renderChatContacts(); }
@@ -369,7 +411,12 @@ async function sendMessage(e) {
         const btn = document.getElementById('btnSendMessage'); const origHTML = btn.innerHTML; btn.innerHTML = '<span class="loader border-t-transparent border-[rgb(8,33,223)] w-5 h-5"></span>';
         
         const p = { sender_id: currentUser.id, sender_name: currentUser.name, sender_role: currentUser.role, sender_avatar: currentUser.avatar_url, sender_classes: currentUser.class_name || '', recipient: activeChatId, message_text: text, file_name: selectedFileName || null, file_data: selectedFileBase64 || null, timestamp: Date.now(), school_id: schId, is_edited: false, is_deleted: false }; 
-        input.value = ''; clearFileSelection(); await db.collection('messages').add(p); await loadChat(); btn.innerHTML = origHTML;
+        input.value = ''; clearFileSelection(); await db.collection('messages').add(p); 
+        
+        await loadChat(); 
+        await renderChatContacts(); // Recarrega a lateral para atualizar o histórico
+        
+        btn.innerHTML = origHTML;
     } catch(err) { console.error(err); alert("Erro ao enviar mensagem."); }
 }
 
@@ -377,16 +424,38 @@ function downloadRealAttachment(msgId, fileName) { const base64Data = window.cha
 async function editChatMessage(id) { const msg = loadedMessages.find(x => x.id === id); if(!msg) return; const newText = prompt("Edite sua mensagem:", msg.message_text); if(newText !== null && newText.trim() !== "" && newText !== msg.message_text) { try { await db.collection('messages').doc(id).update({ message_text: newText.trim(), is_edited: true }); loadChat(); } catch(e) { alert("Erro ao editar."); } } }
 async function deleteChatMessage(id) { if(confirm("Deseja apagar esta mensagem para todos?")) { try { await db.collection('messages').doc(id).update({ message_text: "🚫 Mensagem apagada pelo autor.", file_name: null, file_data: null, is_deleted: true }); loadChat(); } catch(e) { alert("Erro ao apagar."); } } }
 
+let currentRenderId = null; // Trava de segurança para impedir sobreposição visual
 async function loadChat() { 
     const box = document.getElementById('chatMessagesBox'); if(!box || !activeChatId) return; 
-    box.innerHTML = ''; window.chatAttachments = {}; let msgs = await getFilteredData('messages', 'timestamp'); let users = await getFilteredData('users');
+    
+    const fetchId = activeChatId; 
+    currentRenderId = fetchId;
+    
+    // Limpa a tela imediatamente ao invés de esperar o Firebase
+    box.innerHTML = '<div class="absolute inset-0 flex items-center justify-center pointer-events-none"><div class="bg-white/90 backdrop-blur px-8 py-4 rounded-full shadow-lg text-xs font-bold text-gray-500 border border-gray-100">Carregando conversa...</div></div>';
+    
+    window.chatAttachments = {}; let msgs = await getFilteredData('messages', 'timestamp'); let users = await getFilteredData('users');
+    
+    // Se a aba foi mudada enquanto baixava os dados, ignora
+    if (currentRenderId !== fetchId) return;
+
     if (activeChatType === 'USER') { let targetUid = activeChatId.replace('USER_', ''); let uObj = users.find(u => u.id === targetUid); if (uObj && uObj.status) document.getElementById('activeChatStatus').innerText = statusLabels[uObj.status] || uObj.status; }
+    
     msgs = msgs.filter(m => {
-        if (activeChatType === 'GROUP') { return m.recipient === activeChatId; } 
-        else if (activeChatType === 'USER') { const targetUserId = activeChatId.replace('USER_', ''); return (m.sender_id === currentUser.id && m.recipient === activeChatId) || (m.sender_id === targetUserId && m.recipient === `USER_${currentUser.id}`); }
+        let rec = m.recipient || 'SCOPE_ALL';
+        if (activeChatType === 'GROUP') { return rec === activeChatId || (activeChatId === 'SCOPE_ALL' && rec === 'ALL'); } 
+        else if (activeChatType === 'USER') { 
+            const targetUserId = activeChatId.replace('USER_', ''); 
+            return (m.sender_id === currentUser.id && rec === activeChatId) || 
+                   (m.sender_id === targetUserId && rec === `USER_${currentUser.id}`); 
+        }
         return false;
     });
-    loadedMessages = msgs; if(msgs.length === 0) { box.innerHTML = `<div class="absolute inset-0 flex items-center justify-center pointer-events-none"><div class="bg-white/90 backdrop-blur px-8 py-4 rounded-full shadow-lg text-xs font-bold text-gray-500 border border-gray-100"><i class="ph ph-hand-waving text-lg align-middle mr-1 text-[rgb(8,33,223)]"></i> Diga Olá!</div></div>`; }
+
+    loadedMessages = msgs; 
+    box.innerHTML = ''; 
+    if(msgs.length === 0) { box.innerHTML = `<div class="absolute inset-0 flex items-center justify-center pointer-events-none"><div class="bg-white/90 backdrop-blur px-8 py-4 rounded-full shadow-lg text-xs font-bold text-gray-500 border border-gray-100"><i class="ph ph-hand-waving text-lg align-middle mr-1 text-[rgb(8,33,223)]"></i> Diga Olá!</div></div>`; }
+    
     msgs.forEach(m => { 
         const isMe = m.sender_id === currentUser.id; const bubbleClass = isMe ? 'bg-[#d9fdd3] text-gray-800 ml-auto rounded-tr-none' : 'bg-white text-gray-800 mr-auto rounded-tl-none'; const labelRole = roleLabels[m.sender_role] || 'Usuário'; 
         let currentSender = users.find(u => u.id === m.sender_id); const avatarToUse = currentSender?.avatar_url || m.sender_avatar || generateAvatar(m.sender_name, m.sender_role);
