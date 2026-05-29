@@ -1,0 +1,22 @@
+{
+  "name": "IsCoolar - Plataforma Escolar",
+  "short_name": "IsCoolar",
+  "start_url": "/index.html",
+  "display": "standalone",
+  "background_color": "#007bff",
+  "theme_color": "#007bff",
+  "description": "App escolar para notas, chats e diário de classe.",
+  "icons": [
+    {
+      "src": "/icon-master.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icon-master.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    }
+  ]
+}
