@@ -1,24 +1,6 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-    <link rel="manifest" href="/manifest.json">
-
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-title" content="IsCoolar">
-    <link rel="apple-touch-icon" href="icon-master.png">
-
-    <script>
-     if ('serviceWorker' in navigator) {
-         window.addEventListener('load', function() {
-             navigator.serviceWorker.register('/service-worker.js').then(function(registration) {
-                console.log('Service Worker registrado com sucesso: ', registration.scope);
-            }, function(err) {
-                console.log('Falha no registro do Service Worker: ', err);
-            });
-        });
-    }
-    </script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>IsCoolar - Gestão Escolar</title>
@@ -29,74 +11,51 @@
     
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
     <link href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css" rel="stylesheet">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js"></script>
 
+    <link rel="manifest" href="manifest.json">
+    <link rel="icon" type="image/png" href="icon-master.png">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="IsCoolar">
+    <link rel="apple-touch-icon" sizes="180x180" href="icon-master.png">
+    <link rel="apple-touch-icon" href="icon-master.png">
+
     <link rel="stylesheet" href="style.css">
-    
-    <style>
-        .cropper-view-box, .cropper-face { border-radius: 50%; }
-        /* Adicionando segurança para dispositivos Apple (Notch) no rodapé */
-        .pb-safe { padding-bottom: env(safe-area-inset-bottom); }
-    </style>
+    <style>.cropper-view-box, .cropper-face { border-radius: 50%; } .pb-safe { padding-bottom: env(safe-area-inset-bottom); }</style>
 </head>
 <body class="text-gray-800 h-screen flex select-none overflow-hidden bg-[rgb(8,33,223)] font-sans">
 
     <nav id="desktopSidebar" class="hidden md:flex flex-col w-64 bg-white shadow-2xl z-20 shrink-0">
-        <div class="p-6 flex items-center gap-3 text-2xl font-black text-[rgb(8,33,223)] border-b border-gray-100">
-            <i class="ph ph-graduation-cap text-4xl"></i> IsCoolar
-        </div>
+        <div class="p-6 flex items-center gap-3 text-2xl font-black text-[rgb(8,33,223)] border-b border-gray-100"><i class="ph ph-graduation-cap text-4xl"></i> IsCoolar</div>
         <div id="desktopNavItems" class="flex-grow p-4 space-y-2 overflow-y-auto no-scrollbar"></div>
-        <div class="p-4 border-t border-gray-100">
-            <button onclick="logout()" class="w-full flex items-center justify-center gap-2 text-red-500 hover:bg-red-50 hover:text-red-700 p-3 rounded-xl transition font-bold text-sm">
-                <i class="ph ph-sign-out text-lg"></i> Sair do Sistema</button>
-        </div>
+        <div class="p-4 border-t border-gray-100"><button onclick="logout()" class="w-full flex items-center justify-center gap-2 text-red-500 hover:bg-red-50 hover:text-red-700 p-3 rounded-xl transition font-bold text-sm"><i class="ph ph-sign-out text-lg"></i> Sair do Sistema</button></div>
     </nav>
 
     <div class="flex flex-col flex-grow h-screen overflow-hidden relative">
-        
         <header class="p-4 md:p-6 flex justify-between items-center shrink-0 z-10 text-white">
-            <div class="flex items-center gap-2 text-2xl font-black md:hidden drop-shadow-md">
-                <i class="ph ph-graduation-cap text-3xl"></i> IsCoolar
-            </div>
+            <div class="flex items-center gap-2 text-2xl font-black md:hidden drop-shadow-md"><i class="ph ph-graduation-cap text-3xl"></i> IsCoolar</div>
             <div class="hidden md:block text-2xl font-black tracking-wide drop-shadow-md" id="headerPageTitle">IsCoolar Web</div>
-            
             <div id="userInfo" class="hidden flex items-center gap-4">
-                <div class="text-right hidden sm:block drop-shadow-md">
-                    <p id="userNameDisplay" class="text-sm font-bold leading-tight"></p>
-                    <p class="text-[10px] text-blue-200 uppercase tracking-wide font-medium"><span id="userRoleDisplay"></span> • <span id="userSchoolDisplay"></span></p>
-                </div>
-                <button onclick="openProfileModal()" class="border-2 border-white/50 hover:border-white rounded-full hover:scale-105 transition shadow-lg">
-                    <img id="userAvatarDisplay" src="" class="w-11 h-11 rounded-full object-cover bg-white">
-                </button>
-                <button onclick="logout()" class="md:hidden bg-white/20 hover:bg-white/40 p-2.5 rounded-full transition shadow-md">
-                    <i class="ph ph-sign-out block text-white text-lg"></i>
-                </button>
+                <div class="text-right hidden sm:block drop-shadow-md"><p id="userNameDisplay" class="text-sm font-bold leading-tight"></p><p class="text-[10px] text-blue-200 uppercase tracking-wide font-medium"><span id="userRoleDisplay"></span> • <span id="userSchoolDisplay"></span></p></div>
+                <button onclick="openProfileModal()" class="border-2 border-white/50 hover:border-white rounded-full hover:scale-105 transition shadow-lg"><img id="userAvatarDisplay" src="" class="w-11 h-11 rounded-full object-cover bg-white"></button>
+                <button onclick="logout()" class="md:hidden bg-white/20 hover:bg-white/40 p-2.5 rounded-full transition shadow-md"><i class="ph ph-sign-out block text-white text-lg"></i></button>
             </div>
         </header>
 
         <main class="flex-grow overflow-y-auto px-4 md:px-6 pb-28 md:pb-6 no-scrollbar flex flex-col items-center justify-start h-full relative">
             
             <div id="loginScreen" class="bg-white p-8 md:p-10 rounded-3xl shadow-2xl w-full max-w-md mx-auto fade-in mt-6 md:mt-16">
-                <div class="flex justify-center mb-8">
-                    <img src="IsCoolar_Arte.png" alt="IsCoolar Logo" class="w-64 md:w-80 max-w-full h-auto object-contain drop-shadow-lg rounded-2xl transition-all">
-                </div>
+                <div class="flex justify-center mb-8"><img src="IsCoolar_Arte.png" alt="IsCoolar Logo" class="w-64 md:w-80 max-w-full h-auto object-contain drop-shadow-lg rounded-2xl transition-all"></div>
                 <h2 class="text-2xl font-black text-center mb-1 text-gray-800">Acesso Restrito</h2>
                 <p class="text-center text-gray-500 mb-8 text-sm font-medium">Insira suas credenciais para continuar</p>
-                
                 <form onsubmit="handleLogin(event)" class="space-y-5">
-                    <div>
-                        <label class="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-1.5 ml-1">E-mail de Acesso</label>
-                        <input type="email" id="loginEmail" required class="w-full p-3.5 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:border-[rgb(8,33,223)] focus:ring-2 focus:ring-[rgb(8,33,223)]/20 transition-all font-medium" value="administrador@iscoolar.com">
-                    </div>
-                    <div>
-                        <label class="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-1.5 ml-1">Senha</label>
-                        <input type="password" id="loginPassword" required class="w-full p-3.5 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:border-[rgb(8,33,223)] focus:ring-2 focus:ring-[rgb(8,33,223)]/20 transition-all font-medium" value="123">
-                    </div>
-                    <button type="submit" id="btnLoginSubmit" class="w-full bg-[rgb(8,33,223)] hover:bg-[#0618a6] text-white p-4 rounded-xl font-bold shadow-lg hover:shadow-xl hover:-translate-y-0.5 transition-all text-sm tracking-wide">
-                        Entrar no Sistema
-                    </button>
+                    <div><label class="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-1.5 ml-1">E-mail de Acesso</label><input type="email" id="loginEmail" required class="w-full p-3.5 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:border-[rgb(8,33,223)] focus:ring-2 focus:ring-[rgb(8,33,223)]/20 transition-all font-medium" value="administrador@iscoolar.com"></div>
+                    <div><label class="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-1.5 ml-1">Senha</label><input type="password" id="loginPassword" required class="w-full p-3.5 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:border-[rgb(8,33,223)] focus:ring-2 focus:ring-[rgb(8,33,223)]/20 transition-all font-medium" value="123"></div>
+                    <button type="submit" id="btnLoginSubmit" class="w-full bg-[rgb(8,33,223)] hover:bg-[#0618a6] text-white p-4 rounded-xl font-bold shadow-lg hover:shadow-xl hover:-translate-y-0.5 transition-all text-sm tracking-wide">Entrar no Sistema</button>
                 </form>
                 <div id="dbStatus" class="mt-8 p-3 bg-gray-50 rounded-xl border text-xs text-gray-500 text-center flex items-center justify-center gap-2 font-medium"><span class="loader border-gray-400 border-t-[rgb(8,33,223)] w-4 h-4"></span> Conectando banco de dados...</div>
             </div>
@@ -105,347 +64,131 @@
                 
                 <div id="tab-home" class="view-panel hidden bg-white rounded-3xl shadow-2xl p-4 md:p-8 w-full h-full flex flex-col">
                     <h3 class="font-bold text-[rgb(8,33,223)] text-lg mb-6"><i class="ph ph-squares-four align-middle mr-1 text-xl"></i> Visão Geral</h3>
-                    <div class="grid grid-cols-2 md:grid-cols-3 gap-4">
-                        <div class="bg-blue-50/50 p-6 rounded-2xl border border-blue-100 flex flex-col items-center hover:shadow-md transition"><i class="ph ph-student text-4xl text-[rgb(8,33,223)] mb-2"></i><p id="statStudents" class="text-2xl font-black text-gray-800">0</p><p class="text-[10px] text-gray-500 font-bold uppercase tracking-wider mt-1">Alunos Ativos</p></div>
-                        <div class="bg-emerald-50/50 p-6 rounded-2xl border border-emerald-100 flex flex-col items-center hover:shadow-md transition"><i class="ph ph-chalkboard-teacher text-4xl text-emerald-600 mb-2"></i><p id="statTeachers" class="text-2xl font-black text-gray-800">0</p><p class="text-[10px] text-gray-500 font-bold uppercase tracking-wider mt-1">Corpo Docente</p></div>
-                        <div class="bg-purple-50/50 p-6 rounded-2xl border border-purple-100 flex flex-col items-center hover:shadow-md transition col-span-2 md:col-span-1"><i class="ph ph-calendar text-4xl text-purple-600 mb-2"></i><p id="statEvents" class="text-2xl font-black text-gray-800">0</p><p class="text-[10px] text-gray-500 font-bold uppercase tracking-wider mt-1">Eventos Escolares</p></div>
+                    <div id="dashboardGrid" class="grid grid-cols-2 md:grid-cols-3 gap-4">
+                        <div id="cardStudents" class="bg-blue-50/50 p-6 rounded-2xl border border-blue-100 flex flex-col items-center hover:shadow-md transition">
+                            <i class="ph ph-student text-4xl text-[rgb(8,33,223)] mb-2"></i>
+                            <p id="statStudents" class="text-3xl font-black text-gray-800">0</p>
+                            <p id="lblStatStudents" class="text-[10px] text-gray-500 font-bold uppercase tracking-wider mt-1 text-center">Alunos Ativos</p>
+                        </div>
+                        <div id="cardStaff" class="bg-emerald-50/50 p-6 rounded-2xl border border-emerald-100 flex flex-col items-center hover:shadow-md transition">
+                            <i class="ph ph-chalkboard-teacher text-4xl text-emerald-600 mb-2"></i>
+                            <p id="statTeachers" class="text-3xl font-black text-gray-800">0</p>
+                            <p class="text-[10px] text-gray-500 font-bold uppercase tracking-wider mt-1 text-center">Corpo Docente</p>
+                        </div>
+                        <div id="cardEvents" class="bg-purple-50/50 p-6 rounded-2xl border border-purple-100 flex flex-col items-center hover:shadow-md transition col-span-2 md:col-span-1">
+                            <i class="ph ph-calendar text-4xl text-purple-600 mb-2"></i>
+                            <p id="statEvents" class="text-3xl font-black text-gray-800">0</p>
+                            <p class="text-[10px] text-gray-500 font-bold uppercase tracking-wider mt-1 text-center">Eventos Escolares</p>
+                        </div>
                     </div>
                 </div>
 
                 <div id="tab-management" class="view-panel hidden bg-white rounded-3xl shadow-2xl p-4 md:p-6 w-full h-full flex flex-col overflow-hidden">
-                    <div id="adminGlobalSchoolSelector" class="hidden bg-gray-50 p-3.5 rounded-xl border border-gray-200 flex flex-col sm:flex-row items-start sm:items-center gap-3 w-full shrink-0 mb-4">
-                        <label class="text-xs font-black text-gray-600 uppercase tracking-wide whitespace-nowrap"><i class="ph ph-buildings text-base align-middle text-[rgb(8,33,223)]"></i> Contexto do Administrador:</label>
-                        <select id="globalAdminSchoolSelect" onchange="changeAdminSchoolContext()" class="flex-grow w-full p-2.5 border border-gray-300 rounded-lg bg-white text-xs outline-none font-bold text-[rgb(8,33,223)] shadow-sm focus:border-[rgb(8,33,223)]"><option value="">Selecione uma Escola para gerenciar os dados...</option></select>
-                    </div>
-
-                    <div class="bg-gray-100 p-1.5 rounded-xl flex text-xs font-bold text-gray-500 shadow-inner overflow-x-auto no-scrollbar shrink-0 mb-4">
-                        <button onclick="switchAdminTab('schools')" id="adminTabBtn-schools" class="hidden flex-grow py-2.5 px-4 rounded-lg bg-white shadow-sm whitespace-nowrap text-[rgb(8,33,223)] transition">Escolas & Diretores</button>
-                        <button onclick="switchAdminTab('students')" id="adminTabBtn-students" class="flex-grow py-2.5 px-4 rounded-lg bg-white shadow-sm whitespace-nowrap text-[rgb(8,33,223)] transition">Alunos</button>
-                        <button onclick="switchAdminTab('staff')" id="adminTabBtn-staff" class="flex-grow py-2.5 px-4 rounded-lg whitespace-nowrap hover:text-gray-800 transition">Equipe</button>
-                        <button onclick="switchAdminTab('classes')" id="adminTabBtn-classes" class="flex-grow py-2.5 px-4 rounded-lg whitespace-nowrap hover:text-gray-800 transition">Turmas</button>
-                        <button onclick="switchAdminTab('subjects')" id="adminTabBtn-subjects" class="flex-grow py-2.5 px-4 rounded-lg whitespace-nowrap hover:text-gray-800 transition">Matérias</button>
-                        <button onclick="switchAdminTab('system')" id="adminTabBtn-system" class="flex-grow py-2.5 px-4 rounded-lg whitespace-nowrap hover:text-amber-600 transition"><i class="ph ph-gear"></i> Sistema</button>
-                    </div>
+                    <div id="adminGlobalSchoolSelector" class="hidden bg-gray-50 p-3.5 rounded-xl border border-gray-200 flex flex-col sm:flex-row items-start sm:items-center gap-3 w-full shrink-0 mb-4"><label class="text-xs font-black text-gray-600 uppercase tracking-wide whitespace-nowrap"><i class="ph ph-buildings text-base align-middle text-[rgb(8,33,223)]"></i> Contexto:</label><select id="globalAdminSchoolSelect" onchange="changeAdminSchoolContext()" class="flex-grow w-full p-2.5 border border-gray-300 rounded-lg bg-white text-xs outline-none font-bold text-[rgb(8,33,223)] shadow-sm focus:border-[rgb(8,33,223)]"><option value="">Selecione uma Escola...</option></select></div>
+                    <div class="bg-gray-100 p-1.5 rounded-xl flex text-xs font-bold text-gray-500 shadow-inner overflow-x-auto no-scrollbar shrink-0 mb-4"><button onclick="switchAdminTab('schools')" id="adminTabBtn-schools" class="hidden flex-grow py-2.5 px-4 rounded-lg bg-white shadow-sm whitespace-nowrap text-[rgb(8,33,223)] transition">Escolas</button><button onclick="switchAdminTab('students')" id="adminTabBtn-students" class="flex-grow py-2.5 px-4 rounded-lg bg-white shadow-sm whitespace-nowrap text-[rgb(8,33,223)] transition">Alunos</button><button onclick="switchAdminTab('staff')" id="adminTabBtn-staff" class="flex-grow py-2.5 px-4 rounded-lg whitespace-nowrap hover:text-gray-800 transition">Equipe</button><button onclick="switchAdminTab('classes')" id="adminTabBtn-classes" class="flex-grow py-2.5 px-4 rounded-lg whitespace-nowrap hover:text-gray-800 transition">Turmas</button><button onclick="switchAdminTab('subjects')" id="adminTabBtn-subjects" class="flex-grow py-2.5 px-4 rounded-lg whitespace-nowrap hover:text-gray-800 transition">Matérias</button><button onclick="switchAdminTab('system')" id="adminTabBtn-system" class="flex-grow py-2.5 px-4 rounded-lg whitespace-nowrap hover:text-amber-600 transition"><i class="ph ph-gear"></i> Sistema</button></div>
                     
                     <div class="flex-grow overflow-y-auto no-scrollbar pb-4 relative">
-                        <div id="adminView-schools" class="admin-subview hidden flex flex-col space-y-4">
-                            <form onsubmit="adminSaveSchool(event)" class="bg-blue-50/30 p-5 rounded-2xl border border-blue-100 shadow-sm space-y-4">
-                                <h4 class="text-xs font-black text-[rgb(8,33,223)] uppercase tracking-wider border-b border-blue-100 pb-2">Dados da Instituição</h4>
-                                <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs font-medium">
-                                    <div><label class="block font-bold text-gray-600 mb-1.5">ID Único</label><input type="text" id="newSchoolId" required class="w-full p-2.5 border border-gray-200 rounded-lg outline-none focus:border-[rgb(8,33,223)]"></div>
-                                    <div class="sm:col-span-2"><label class="block font-bold text-gray-600 mb-1.5">Nome da Escola</label><input type="text" id="newSchoolName" required class="w-full p-2.5 border border-gray-200 rounded-lg outline-none focus:border-[rgb(8,33,223)]"></div>
-                                    <div class="sm:col-span-3"><label class="block font-bold text-gray-600 mb-1.5">Telefone / Contato</label><input type="text" id="newSchoolPhone" required class="w-full p-2.5 border border-gray-200 rounded-lg outline-none focus:border-[rgb(8,33,223)]"></div>
-                                </div>
-                                <h4 class="text-xs font-black text-[rgb(8,33,223)] uppercase tracking-wider border-b border-blue-100 pb-2 mt-4">Endereço Completo</h4>
-                                <div class="grid grid-cols-1 sm:grid-cols-6 gap-3 text-xs font-medium">
-                                    <div class="sm:col-span-2"><label class="block font-bold text-gray-600 mb-1.5">CEP</label><input type="text" id="newSchoolCEP" required class="w-full p-2.5 border border-gray-200 rounded-lg outline-none focus:border-[rgb(8,33,223)]"></div>
-                                    <div class="sm:col-span-4"><label class="block font-bold text-gray-600 mb-1.5">Logradouro</label><input type="text" id="newSchoolLogradouro" required class="w-full p-2.5 border border-gray-200 rounded-lg outline-none focus:border-[rgb(8,33,223)]"></div>
-                                    <div class="sm:col-span-1"><label class="block font-bold text-gray-600 mb-1.5">Número</label><input type="text" id="newSchoolNumero" required class="w-full p-2.5 border border-gray-200 rounded-lg outline-none focus:border-[rgb(8,33,223)]"></div>
-                                    <div class="sm:col-span-2"><label class="block font-bold text-gray-600 mb-1.5">Bairro</label><input type="text" id="newSchoolBairro" required class="w-full p-2.5 border border-gray-200 rounded-lg outline-none focus:border-[rgb(8,33,223)]"></div>
-                                    <div class="sm:col-span-2"><label class="block font-bold text-gray-600 mb-1.5">Cidade</label><input type="text" id="newSchoolCidade" required class="w-full p-2.5 border border-gray-200 rounded-lg outline-none focus:border-[rgb(8,33,223)]"></div>
-                                    <div class="sm:col-span-1"><label class="block font-bold text-gray-600 mb-1.5">Estado</label><select id="newSchoolEstado" required class="w-full p-2.5 border border-gray-200 rounded-lg bg-white outline-none focus:border-[rgb(8,33,223)]"><option value="" disabled selected>UF</option><option value="AC">AC</option> <option value="AL">AL</option> <option value="AP">AP</option><option value="AM">AM</option> <option value="BA">BA</option> <option value="CE">CE</option><option value="DF">DF</option> <option value="ES">ES</option> <option value="GO">GO</option><option value="MA">MA</option> <option value="MT">MT</option> <option value="MS">MS</option><option value="MG">MG</option> <option value="PA">PA</option> <option value="PB">PB</option><option value="PR">PR</option> <option value="PE">PE</option> <option value="PI">PI</option><option value="RJ">RJ</option> <option value="RN">RN</option> <option value="RS">RS</option><option value="RO">RO</option> <option value="RR">RR</option> <option value="SC">SC</option><option value="SP">SP</option> <option value="SE">SE</option> <option value="TO">TO</option></select></div>
-                                </div>
-                                <h4 class="text-xs font-black text-[rgb(8,33,223)] uppercase tracking-wider border-b border-blue-100 pb-2 mt-4">Conta da Direção</h4>
-                                <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs font-medium">
-                                    <input type="text" id="newDirName" required placeholder="Nome do Diretor" class="p-2.5 border border-gray-200 rounded-lg outline-none focus:border-[rgb(8,33,223)]">
-                                    <input type="email" id="newDirEmail" required placeholder="E-mail (Login)" class="p-2.5 border border-gray-200 rounded-lg outline-none focus:border-[rgb(8,33,223)]">
-                                    <input type="text" id="newDirPass" required placeholder="Senha" class="p-2.5 border border-gray-200 rounded-lg outline-none focus:border-[rgb(8,33,223)]" value="123">
-                                </div>
-                                <div class="flex gap-3 pt-3"><button type="submit" id="btnSaveSchool" class="bg-[rgb(8,33,223)] hover:bg-[#0618a6] text-white px-8 py-2.5 rounded-xl font-bold shadow-md transition">Cadastrar Instituição</button><button type="button" onclick="cancelSchoolEdit()" id="btnCancelSchool" class="hidden bg-gray-200 hover:bg-gray-300 px-6 rounded-xl font-bold text-gray-700 transition">Cancelar</button></div>
-                            </form>
-                            <ul id="settingsSchoolsList" class="text-xs divide-y border rounded-2xl bg-white shadow-sm overflow-hidden"></ul>
-                        </div>
-
-                        <div id="adminView-students" class="admin-subview flex flex-col space-y-4">
-                            <form onsubmit="directorSaveStudent(event)" class="bg-blue-50/30 p-5 rounded-2xl border border-blue-100 shadow-sm space-y-4">
-                                <h4 class="text-xs font-black text-[rgb(8,33,223)] uppercase tracking-wider border-b border-blue-100 pb-2">Dados do Aluno</h4>
-                                <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs font-medium">
-                                    <input type="text" id="newStudentId" required placeholder="RA / Matrícula" class="p-2.5 border border-gray-200 rounded-lg outline-none focus:border-[rgb(8,33,223)]">
-                                    <input type="text" id="newStudentName" required placeholder="Nome do Aluno Completo" class="p-2.5 border border-gray-200 rounded-lg outline-none focus:border-[rgb(8,33,223)]">
-                                    <select id="newStudentClass" required class="p-2.5 border border-gray-200 rounded-lg bg-white outline-none focus:border-[rgb(8,33,223)]"></select>
-                                </div>
-                                <h4 class="text-xs font-black text-[rgb(8,33,223)] uppercase tracking-wider border-b border-blue-100 pb-2 mt-4">Dados dos Responsáveis <span class="text-gray-400 font-normal lowercase tracking-normal">(Senhas automáticas: 123)</span></h4>
-                                <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs font-medium">
-                                    <input type="email" id="newResp1Email" required placeholder="E-mail do Responsável 1" class="p-2.5 border border-gray-200 rounded-lg outline-none focus:border-[rgb(8,33,223)]">
-                                    <input type="text" id="newResp1Rel" required placeholder="Parentesco (Ex: Mãe)" class="p-2.5 border border-gray-200 rounded-lg outline-none focus:border-[rgb(8,33,223)]">
-                                    <input type="text" id="newResp1Name" required placeholder="Nome do Responsável 1" class="p-2.5 border border-gray-200 rounded-lg outline-none focus:border-[rgb(8,33,223)]">
-                                </div>
-                                <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs font-medium opacity-60 hover:opacity-100 focus-within:opacity-100 transition-opacity duration-300">
-                                    <input type="email" id="newResp2Email" placeholder="E-mail Resp 2 (Opcional)" class="p-2.5 border border-gray-200 rounded-lg outline-none focus:border-[rgb(8,33,223)] bg-gray-50 focus:bg-white">
-                                    <input type="text" id="newResp2Rel" placeholder="Parentesco (Opcional)" class="p-2.5 border border-gray-200 rounded-lg outline-none focus:border-[rgb(8,33,223)] bg-gray-50 focus:bg-white">
-                                    <input type="text" id="newResp2Name" placeholder="Nome Resp 2 (Opcional)" class="p-2.5 border border-gray-200 rounded-lg outline-none focus:border-[rgb(8,33,223)] bg-gray-50 focus:bg-white">
-                                </div>
-                                <div class="flex gap-3 pt-3"><button type="submit" id="btnSaveStudent" class="bg-[rgb(8,33,223)] hover:bg-[#0618a6] text-white px-8 py-2.5 rounded-xl font-bold shadow-md transition">Matricular Aluno</button><button type="button" onclick="cancelStudentEdit()" id="btnCancelStudent" class="hidden bg-gray-200 hover:bg-gray-300 px-6 rounded-xl font-bold text-gray-700 transition">Cancelar Edição</button></div>
-                            </form>
-                            <ul id="settingsStudentsList" class="text-xs divide-y border rounded-2xl bg-white shadow-sm overflow-hidden"></ul>
-                        </div>
+                        <div id="adminView-schools" class="admin-subview hidden flex flex-col space-y-4"><form onsubmit="adminSaveSchool(event)" class="bg-blue-50/30 p-5 rounded-2xl border border-blue-100 shadow-sm space-y-4"><h4 class="text-xs font-black text-[rgb(8,33,223)] uppercase tracking-wider border-b border-blue-100 pb-2">Dados da Instituição</h4><div class="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs font-medium"><div><label class="block font-bold text-gray-600 mb-1.5">ID Único</label><input type="text" id="newSchoolId" required class="w-full p-2.5 border border-gray-200 rounded-lg outline-none focus:border-[rgb(8,33,223)]"></div><div class="sm:col-span-2"><label class="block font-bold text-gray-600 mb-1.5">Nome da Escola</label><input type="text" id="newSchoolName" required class="w-full p-2.5 border border-gray-200 rounded-lg outline-none focus:border-[rgb(8,33,223)]"></div><div class="sm:col-span-3"><label class="block font-bold text-gray-600 mb-1.5">Telefone / Contato</label><input type="text" id="newSchoolPhone" required class="w-full p-2.5 border border-gray-200 rounded-lg outline-none focus:border-[rgb(8,33,223)]"></div></div><h4 class="text-xs font-black text-[rgb(8,33,223)] uppercase tracking-wider border-b border-blue-100 pb-2 mt-4">Endereço</h4><div class="grid grid-cols-1 sm:grid-cols-6 gap-3 text-xs font-medium"><div class="sm:col-span-2"><label class="block font-bold text-gray-600 mb-1.5">CEP</label><input type="text" id="newSchoolCEP" required class="w-full p-2.5 border border-gray-200 rounded-lg outline-none focus:border-[rgb(8,33,223)]"></div><div class="sm:col-span-4"><label class="block font-bold text-gray-600 mb-1.5">Logradouro</label><input type="text" id="newSchoolLogradouro" required class="w-full p-2.5 border border-gray-200 rounded-lg outline-none focus:border-[rgb(8,33,223)]"></div><div class="sm:col-span-1"><label class="block font-bold text-gray-600 mb-1.5">Número</label><input type="text" id="newSchoolNumero" required class="w-full p-2.5 border border-gray-200 rounded-lg outline-none focus:border-[rgb(8,33,223)]"></div><div class="sm:col-span-2"><label class="block font-bold text-gray-600 mb-1.5">Bairro</label><input type="text" id="newSchoolBairro" required class="w-full p-2.5 border border-gray-200 rounded-lg outline-none focus:border-[rgb(8,33,223)]"></div><div class="sm:col-span-2"><label class="block font-bold text-gray-600 mb-1.5">Cidade</label><input type="text" id="newSchoolCidade" required class="w-full p-2.5 border border-gray-200 rounded-lg outline-none focus:border-[rgb(8,33,223)]"></div><div class="sm:col-span-1"><label class="block font-bold text-gray-600 mb-1.5">Estado</label><select id="newSchoolEstado" required class="w-full p-2.5 border border-gray-200 rounded-lg bg-white outline-none focus:border-[rgb(8,33,223)]"><option value="" disabled selected>UF</option><option value="SP">SP</option><option value="RJ">RJ</option><option value="MG">MG</option></select></div></div><h4 class="text-xs font-black text-[rgb(8,33,223)] uppercase tracking-wider border-b border-blue-100 pb-2 mt-4">Direção</h4><div class="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs font-medium"><input type="text" id="newDirName" required placeholder="Nome Diretor" class="p-2.5 border border-gray-200 rounded-lg"><input type="email" id="newDirEmail" required placeholder="E-mail (Login)" class="p-2.5 border border-gray-200 rounded-lg"><input type="text" id="newDirPass" required placeholder="Senha" class="p-2.5 border border-gray-200 rounded-lg" value="123"></div><div class="flex gap-3 pt-3"><button type="submit" id="btnSaveSchool" class="bg-[rgb(8,33,223)] hover:bg-[#0618a6] text-white px-8 py-2.5 rounded-xl font-bold shadow-md transition">Cadastrar</button><button type="button" onclick="cancelSchoolEdit()" id="btnCancelSchool" class="hidden bg-gray-200 hover:bg-gray-300 px-6 rounded-xl font-bold text-gray-700 transition">Cancelar</button></div></form><ul id="settingsSchoolsList" class="text-xs divide-y border rounded-2xl bg-white shadow-sm overflow-hidden"></ul></div>
                         
-                        <div id="adminView-staff" class="admin-subview hidden flex flex-col space-y-4">
-                            <form onsubmit="directorAddStaff(event)" class="bg-emerald-50/30 p-5 rounded-2xl border border-emerald-100 shadow-sm space-y-4">
-                                <h4 class="text-xs font-black text-emerald-700 uppercase tracking-wider border-b border-emerald-100 pb-2">Contrato de Colaborador</h4>
-                                <div class="grid grid-cols-1 sm:grid-cols-5 gap-3 text-xs font-medium items-start">
-                                    <div id="adminSchoolSelectBox" class="hidden sm:col-span-5"><label class="block font-bold text-gray-600 mb-1.5">Vincular a qual Escola?</label><select id="newStaffSchool" class="w-full p-2.5 border border-gray-200 rounded-lg bg-white outline-none focus:border-emerald-500"></select></div>
-                                    <div class="col-span-1"><label class="block font-bold text-gray-600 mb-1.5">Cargo</label><select id="newStaffRole" required class="w-full p-2.5 border border-gray-200 rounded-lg bg-white outline-none focus:border-emerald-500"><option value="coordinator">Coordenador</option><option value="teacher">Professor</option></select></div>
-                                    <div class="col-span-2"><label class="block font-bold text-gray-600 mb-1.5">Nome Completo</label><input type="text" id="newStaffName" required class="w-full p-2.5 border border-gray-200 rounded-lg outline-none focus:border-emerald-500"></div>
-                                    <div class="col-span-2"><label class="block font-bold text-gray-600 mb-1.5">E-mail (Login)</label><input type="email" id="newStaffEmail" required class="w-full p-2.5 border border-gray-200 rounded-lg outline-none focus:border-emerald-500"></div>
-                                    
-                                    <div class="sm:col-span-5 mt-2">
-                                        <label class="block font-bold text-gray-600 mb-2">Turmas de Responsabilidade <span class="text-gray-400 font-normal lowercase">(Opcional - Marque as caixinhas)</span></label>
-                                        <div id="newStaffClassContainer" class="w-full p-3 border border-gray-200 rounded-xl bg-white max-h-32 overflow-y-auto flex flex-col gap-2"></div>
-                                    </div>
-                                    
-                                    <div class="sm:col-span-5 flex gap-3 pt-3"><button type="submit" id="btnSaveStaff" class="bg-emerald-600 hover:bg-emerald-700 text-white px-8 py-2.5 rounded-xl font-bold shadow-md transition">Contratar Funcionário</button><button type="button" onclick="cancelStaffEdit()" id="btnCancelStaff" class="hidden bg-gray-200 hover:bg-gray-300 px-6 rounded-xl font-bold text-gray-700 transition">Cancelar</button></div>
-                                </div>
-                            </form>
-                            <ul id="settingsStaffList" class="text-xs divide-y border rounded-2xl bg-white shadow-sm overflow-hidden"></ul>
-                        </div>
+                        <div id="adminView-students" class="admin-subview flex flex-col space-y-4"><form onsubmit="directorSaveStudent(event)" class="bg-blue-50/30 p-5 rounded-2xl border border-blue-100 shadow-sm space-y-4"><h4 class="text-xs font-black text-[rgb(8,33,223)] uppercase tracking-wider border-b border-blue-100 pb-2">Dados do Aluno</h4><div class="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs font-medium"><input type="text" id="newStudentId" required placeholder="RA / Matrícula" class="p-2.5 border border-gray-200 rounded-lg"><input type="text" id="newStudentName" required placeholder="Nome do Aluno Completo" class="p-2.5 border border-gray-200 rounded-lg"><select id="newStudentClass" required class="p-2.5 border border-gray-200 rounded-lg bg-white"></select></div><h4 class="text-xs font-black text-[rgb(8,33,223)] uppercase tracking-wider border-b border-blue-100 pb-2 mt-4">Responsáveis (Senhas: 123)</h4><div class="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs font-medium"><input type="email" id="newResp1Email" required placeholder="E-mail Resp 1" class="p-2.5 border border-gray-200 rounded-lg"><input type="text" id="newResp1Rel" required placeholder="Parentesco" class="p-2.5 border border-gray-200 rounded-lg"><input type="text" id="newResp1Name" required placeholder="Nome Resp 1" class="p-2.5 border border-gray-200 rounded-lg"></div><div class="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs font-medium opacity-60 hover:opacity-100 transition"><input type="email" id="newResp2Email" placeholder="E-mail Resp 2 (Opcional)" class="p-2.5 border border-gray-200 rounded-lg bg-gray-50 focus:bg-white"><input type="text" id="newResp2Rel" placeholder="Parentesco (Opcional)" class="p-2.5 border border-gray-200 rounded-lg bg-gray-50 focus:bg-white"><input type="text" id="newResp2Name" placeholder="Nome Resp 2 (Opcional)" class="p-2.5 border border-gray-200 rounded-lg bg-gray-50 focus:bg-white"></div><div class="flex gap-3 pt-3"><button type="submit" id="btnSaveStudent" class="bg-[rgb(8,33,223)] text-white px-8 py-2.5 rounded-xl font-bold shadow-md transition">Matricular</button><button type="button" onclick="cancelStudentEdit()" id="btnCancelStudent" class="hidden bg-gray-200 px-6 rounded-xl font-bold text-gray-700 transition">Cancelar</button></div></form><ul id="settingsStudentsList" class="text-xs divide-y border rounded-2xl bg-white shadow-sm overflow-hidden"></ul></div>
                         
-                        <div id="adminView-classes" class="admin-subview hidden flex flex-col space-y-4">
-                            <form onsubmit="directorAddClass(event)" class="flex flex-col sm:flex-row gap-3 text-xs font-medium bg-amber-50/50 p-5 rounded-2xl border border-amber-100 items-end shadow-sm">
-                                <div class="w-full sm:w-auto"><label class="block font-bold text-gray-600 mb-1.5">Série (Ex: 1º)</label><input type="text" id="newClassSerie" required class="w-full p-2.5 border border-gray-200 rounded-lg uppercase outline-none focus:border-amber-500"></div>
-                                <div class="w-full sm:w-auto"><label class="block font-bold text-gray-600 mb-1.5">Turma (Ex: A)</label><input type="text" id="newClassTurma" required class="w-full p-2.5 border border-gray-200 rounded-lg uppercase outline-none focus:border-amber-500"></div>
-                                <div class="flex gap-2 w-full sm:w-auto mt-3 sm:mt-0"><button type="submit" id="btnSaveClass" class="flex-grow bg-amber-500 hover:bg-amber-600 text-white font-bold px-8 py-2.5 rounded-xl shadow-md transition h-[42px]">Criar Turma</button><button type="button" onclick="cancelClassEdit()" id="btnCancelClass" class="hidden bg-gray-200 hover:bg-gray-300 px-6 rounded-xl font-bold text-gray-700 transition h-[42px]">Cancelar</button></div>
-                            </form>
-                            <ul id="settingsClassesList" class="text-xs divide-y border rounded-2xl bg-white shadow-sm overflow-hidden"></ul>
-                        </div>
+                        <div id="adminView-staff" class="admin-subview hidden flex flex-col space-y-4"><form onsubmit="directorAddStaff(event)" class="bg-emerald-50/30 p-5 rounded-2xl border border-emerald-100 shadow-sm space-y-4"><h4 class="text-xs font-black text-emerald-700 uppercase tracking-wider border-b border-emerald-100 pb-2">Colaborador</h4><div class="grid grid-cols-1 sm:grid-cols-5 gap-3 text-xs font-medium"><div id="adminSchoolSelectBox" class="hidden sm:col-span-5"><label class="block font-bold text-gray-600 mb-1.5">Escola?</label><select id="newStaffSchool" class="w-full p-2.5 border rounded-lg bg-white"></select></div><div class="col-span-1"><label class="block font-bold text-gray-600 mb-1.5">Cargo</label><select id="newStaffRole" required class="w-full p-2.5 border rounded-lg bg-white"><option value="coordinator">Coordenador</option><option value="teacher">Professor</option></select></div><div class="col-span-2"><label class="block font-bold text-gray-600 mb-1.5">Nome</label><input type="text" id="newStaffName" required class="w-full p-2.5 border rounded-lg"></div><div class="col-span-2"><label class="block font-bold text-gray-600 mb-1.5">E-mail (Login)</label><input type="email" id="newStaffEmail" required class="w-full p-2.5 border rounded-lg"></div><div class="sm:col-span-5 mt-2"><label class="block font-bold text-gray-600 mb-2">Turmas</label><div id="newStaffClassContainer" class="w-full p-3 border rounded-xl bg-white max-h-32 overflow-y-auto flex flex-col gap-2"></div></div><div class="sm:col-span-5 flex gap-3 pt-3"><button type="submit" id="btnSaveStaff" class="bg-emerald-600 text-white px-8 py-2.5 rounded-xl font-bold shadow-md">Contratar</button><button type="button" onclick="cancelStaffEdit()" id="btnCancelStaff" class="hidden bg-gray-200 px-6 rounded-xl font-bold text-gray-700">Cancelar</button></div></div></form><ul id="settingsStaffList" class="text-xs divide-y border rounded-2xl bg-white shadow-sm overflow-hidden"></ul></div>
+                        
+                        <div id="adminView-classes" class="admin-subview hidden flex flex-col space-y-4"><form onsubmit="directorAddClass(event)" class="flex flex-col sm:flex-row gap-3 text-xs font-medium bg-amber-50/50 p-5 rounded-2xl border border-amber-100 items-end shadow-sm"><div class="w-full sm:w-auto"><label class="block font-bold text-gray-600 mb-1.5">Série (Ex: 1º)</label><input type="text" id="newClassSerie" required class="w-full p-2.5 border rounded-lg uppercase"></div><div class="w-full sm:w-auto"><label class="block font-bold text-gray-600 mb-1.5">Turma (Ex: A)</label><input type="text" id="newClassTurma" required class="w-full p-2.5 border rounded-lg uppercase"></div><div class="flex gap-2 w-full sm:w-auto mt-3 sm:mt-0"><button type="submit" id="btnSaveClass" class="flex-grow bg-amber-500 text-white font-bold px-8 py-2.5 rounded-xl shadow-md h-[42px]">Criar</button><button type="button" onclick="cancelClassEdit()" id="btnCancelClass" class="hidden bg-gray-200 px-6 rounded-xl font-bold text-gray-700 h-[42px]">Cancelar</button></div></form><ul id="settingsClassesList" class="text-xs divide-y border rounded-2xl bg-white shadow-sm overflow-hidden"></ul></div>
 
-                        <div id="adminView-subjects" class="admin-subview hidden flex flex-col space-y-4">
-                            <div id="adminGlobalSubjectsBlock" class="hidden flex-col space-y-4">
-                                <form onsubmit="adminAddGlobalSubject(event)" class="flex flex-col sm:flex-row gap-3 text-xs font-medium bg-purple-50/50 p-5 rounded-2xl border border-purple-100 items-end shadow-sm">
-                                    <div class="flex-grow w-full"><label class="block font-bold text-gray-600 mb-1.5">Nova Disciplina Global</label><input type="text" id="newGlobalSubjectName" required class="w-full p-2.5 border border-gray-200 rounded-lg outline-none focus:border-purple-500" placeholder="Ex: Educação Artística"></div>
-                                    <div class="flex gap-2 w-full sm:w-auto mt-3 sm:mt-0"><button type="submit" id="btnSaveGlobalSubject" class="flex-grow bg-purple-600 hover:bg-purple-700 text-white font-bold px-8 py-2.5 rounded-xl shadow-md transition h-[42px]">Gravar Base</button><button type="button" onclick="cancelGlobalSubjectEdit()" id="btnCancelSubject" class="hidden bg-gray-200 hover:bg-gray-300 px-6 rounded-xl font-bold text-gray-700 transition h-[42px]">Cancelar</button></div>
-                                </form>
-                                <h4 class="text-xs font-black uppercase text-gray-500 tracking-wider">Disciplinas Registradas no Banco</h4>
-                                <ul id="globalSubjectsList" class="text-xs divide-y border rounded-2xl bg-white shadow-sm overflow-hidden"></ul>
-                            </div>
-                            <div id="schoolSubjectsBlock" class="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm hidden">
-                                <p class="text-sm font-black text-gray-800 mb-4 border-b pb-2">Grade Curricular da Escola</p>
-                                <form onsubmit="directorSaveSubjects(event)" class="space-y-5">
-                                    <div id="subjectsCheckboxContainer" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3"></div>
-                                    <button type="submit" class="bg-[rgb(8,33,223)] hover:bg-[#0618a6] text-white font-bold px-8 py-3 rounded-xl text-xs shadow-md transition w-full sm:w-auto">Atualizar Grade Curricular</button>
-                                </form>
-                            </div>
-                        </div>
+                        <div id="adminView-subjects" class="admin-subview hidden flex flex-col space-y-4"><div id="adminGlobalSubjectsBlock" class="hidden flex-col space-y-4"><form onsubmit="adminAddGlobalSubject(event)" class="flex flex-col sm:flex-row gap-3 text-xs font-medium bg-purple-50/50 p-5 rounded-2xl border border-purple-100 items-end shadow-sm"><div class="flex-grow w-full"><label class="block font-bold text-gray-600 mb-1.5">Nova Disciplina Global</label><input type="text" id="newGlobalSubjectName" required class="w-full p-2.5 border rounded-lg" placeholder="Ex: Educação Artística"></div><div class="flex gap-2 w-full sm:w-auto mt-3 sm:mt-0"><button type="submit" id="btnSaveGlobalSubject" class="bg-purple-600 text-white font-bold px-8 py-2.5 rounded-xl shadow-md h-[42px]">Gravar</button><button type="button" onclick="cancelGlobalSubjectEdit()" id="btnCancelGlobalSubject" class="hidden bg-gray-200 px-6 rounded-xl font-bold text-gray-700 h-[42px]">Cancelar</button></div></form><h4 class="text-xs font-black uppercase text-gray-500 tracking-wider">Disciplinas Registradas no Banco</h4><ul id="globalSubjectsList" class="text-xs divide-y border rounded-2xl bg-white shadow-sm overflow-hidden"></ul></div><div id="schoolSubjectsBlock" class="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm hidden"><p class="text-sm font-black text-gray-800 mb-4 border-b pb-2">Grade Curricular da Escola</p><form onsubmit="directorSaveSubjects(event)" class="space-y-5"><div id="subjectsCheckboxContainer" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3"></div><button type="submit" class="bg-[rgb(8,33,223)] text-white font-bold px-8 py-3 rounded-xl text-xs shadow-md w-full sm:w-auto">Atualizar Grade</button></form></div></div>
 
-                        <div id="adminView-system" class="admin-subview hidden">
-                            <div class="bg-white p-8 rounded-2xl border border-gray-100 shadow-sm max-w-md mx-auto mt-6 text-center">
-                                <div class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-amber-50 text-amber-500 mb-4">
-                                    <i class="ph ph-gear text-3xl"></i>
-                                </div>
-                                <h4 class="font-black text-gray-800 text-xl mb-2">Sistema de Avaliação</h4>
-                                <p class="text-sm text-gray-500 mb-6 font-medium">Defina a periodicidade padrão de divisão de notas e boletins desta instituição.</p>
-                                <select id="globalGradingSystem" onchange="updateGradingSystem()" class="w-full p-4 border border-gray-200 rounded-xl bg-gray-50 font-bold text-gray-800 outline-none focus:border-[rgb(8,33,223)] shadow-sm text-center appearance-none cursor-pointer transition">
-                                    <option value="Bimestral">Bimestral</option>
-                                    <option value="Trimestral">Trimestral</option>
-                                    <option value="Semestral">Semestral</option>
-                                </select>
-                            </div>
-                        </div>
+                        <div id="adminView-system" class="admin-subview hidden"><div class="bg-white p-8 rounded-2xl border border-gray-100 shadow-sm max-w-md mx-auto mt-6 text-center"><div class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-amber-50 text-amber-500 mb-4"><i class="ph ph-gear text-3xl"></i></div><h4 class="font-black text-gray-800 text-xl mb-2">Sistema de Avaliação</h4><p class="text-sm text-gray-500 mb-6 font-medium">Defina a periodicidade padrão.</p><select id="globalGradingSystem" onchange="updateGradingSystem()" class="w-full p-4 border rounded-xl bg-gray-50 font-bold text-gray-800 text-center"><option value="Bimestral">Bimestral</option><option value="Trimestral">Trimestral</option><option value="Semestral">Semestral</option></select></div></div>
                     </div>
                 </div>
 
                 <div id="tab-grades" class="view-panel hidden bg-white rounded-3xl shadow-2xl p-4 md:p-6 w-full h-full flex flex-col">
-                    <div class="border-b pb-4 mb-4 flex justify-between items-center shrink-0">
-                        <h3 class="font-black text-gray-800 text-lg flex items-center gap-2"><div class="w-8 h-8 rounded-lg bg-blue-100 text-blue-600 flex items-center justify-center"><i class="ph ph-file-text text-xl"></i></div> Boletim Eletrônico</h3>
-                        <span id="lblGradingSystem" class="text-xs bg-gray-100 text-gray-600 px-3 py-1.5 rounded-lg font-bold border">Bimestral</span>
-                    </div>
-                    
+                    <div class="border-b pb-4 mb-4 flex justify-between items-center shrink-0"><h3 class="font-black text-gray-800 text-lg flex items-center gap-2"><div class="w-8 h-8 rounded-lg bg-blue-100 text-blue-600 flex items-center justify-center"><i class="ph ph-file-text text-xl"></i></div> Boletim Eletrônico</h3><span id="lblGradingSystem" class="text-xs bg-gray-100 text-gray-600 px-3 py-1.5 rounded-lg font-bold border">Bimestral</span></div>
                     <div class="flex flex-col md:flex-row gap-5 flex-grow overflow-visible md:overflow-hidden min-h-[500px]">
-                        <div class="md:w-1/3 flex flex-col bg-gray-50 rounded-2xl border border-gray-100 overflow-hidden shrink-0 h-72 md:h-full">
-                            <div class="p-3 border-b bg-white shrink-0" id="gradesFilterContainer"><select id="gradesClassSelect" onchange="loadStudentsForGrades()" class="w-full p-2.5 border border-gray-200 rounded-xl text-xs font-bold outline-none text-[rgb(8,33,223)] bg-gray-50 focus:bg-white transition cursor-pointer"></select></div>
-                            <ul id="gradesStudentList" class="flex-grow overflow-y-auto text-sm divide-y divide-gray-100 no-scrollbar"></ul>
-                        </div>
+                        <div class="md:w-1/3 flex flex-col bg-gray-50 rounded-2xl border border-gray-100 overflow-hidden shrink-0 h-72 md:h-full"><div class="p-3 border-b bg-white shrink-0" id="gradesFilterContainer"><select id="gradesClassSelect" onchange="loadStudentsForGrades()" class="w-full p-2.5 border border-gray-200 rounded-xl text-xs font-bold bg-gray-50 text-[rgb(8,33,223)] cursor-pointer"></select></div><ul id="gradesStudentList" class="flex-grow overflow-y-auto text-sm divide-y divide-gray-100 no-scrollbar"></ul></div>
                         
                         <div class="md:w-2/3 flex flex-col bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden flex-grow min-h-[500px] md:h-full relative">
-                            <div id="gradeFormContainer" class="p-5 border-b bg-blue-50/30 hidden shrink-0">
-                                <h4 class="text-xs font-black text-[rgb(8,33,223)] mb-3 uppercase tracking-wider">Registrar Avaliação: <span id="lblSelectedStudentName" class="text-gray-600"></span></h4>
-                                <form id="gradeForm" onsubmit="addGrade(event)" class="flex flex-col sm:flex-row gap-3 text-xs font-medium">
-                                    <select id="gradeSubjectSelect" required class="flex-grow p-2.5 border border-gray-200 rounded-xl outline-none focus:border-[rgb(8,33,223)] bg-white"></select>
-                                    <select id="gradePeriodSelect" required class="p-2.5 border border-gray-200 rounded-xl outline-none focus:border-[rgb(8,33,223)] bg-white"></select>
-                                    <div class="flex gap-2">
-                                        <input type="number" id="gradeInput" required step="0.1" min="0" max="10" placeholder="Nota Final" class="w-24 p-2.5 border border-gray-200 rounded-xl text-center font-bold outline-none focus:border-[rgb(8,33,223)]">
-                                        <button type="submit" class="bg-[rgb(8,33,223)] hover:bg-[#0618a6] text-white px-6 rounded-xl font-bold transition flex-grow sm:flex-grow-0 shadow-md">Lançar</button>
-                                    </div>
-                                </form>
-                            </div>
-                            
-                            <div class="p-4 bg-white border-b flex justify-between items-center shrink-0 z-10 shadow-sm">
-                                <div class="flex items-center gap-2">
-                                    <h4 class="font-black text-gray-800 text-sm">Boletim do Aluno</h4>
-                                    <span id="selectedStudentClassLbl" class="text-[10px] text-gray-500 bg-gray-100 px-2 py-0.5 rounded border border-gray-200 font-bold uppercase hidden"></span>
-                                </div>
-                                <div id="gradesPeriodFilterContainer" class="hidden flex items-center gap-2">
-                                    <select id="viewGradePeriodSelect" onchange="filterGradesByPeriod()" class="w-28 sm:w-auto p-2 border border-gray-200 rounded-lg text-xs outline-none bg-gray-50 text-gray-700 font-bold cursor-pointer hover:bg-gray-100 transition"></select>
-                                    <button onclick="generateBoletimPDF()" class="bg-red-50 text-red-600 hover:bg-red-500 hover:text-white border border-red-100 hover:border-red-500 p-2 rounded-lg transition flex items-center gap-1 text-xs font-bold px-3 shadow-sm">
-                                        <i class="ph ph-file-pdf text-base"></i> Gerar PDF
-                                    </button>
-                                </div>
-                            </div>
-
+                            <div class="p-4 bg-white border-b flex justify-between items-center shrink-0 z-10 shadow-sm"><div class="flex items-center gap-2"><h4 class="font-black text-gray-800 text-sm">Boletim: <span id="lblSelectedStudentName" class="text-[rgb(8,33,223)]">Selecione um aluno</span></h4><span id="selectedStudentClassLbl" class="text-[10px] text-gray-500 bg-gray-100 px-2 py-0.5 rounded border hidden"></span></div><div id="gradesPeriodFilterContainer" class="hidden flex items-center gap-2"><select id="viewGradePeriodSelect" onchange="filterGradesByPeriod()" class="w-36 sm:w-auto p-2 border rounded-lg text-xs bg-gray-50 text-gray-700 font-bold cursor-pointer shadow-inner"></select><button onclick="generateBoletimPDF()" class="bg-red-50 text-red-600 border border-red-100 hover:bg-red-500 hover:text-white p-2 rounded-lg transition flex items-center gap-1 text-xs font-bold shadow-sm"><i class="ph ph-file-pdf text-base"></i> Gerar PDF</button></div></div>
                             <div class="flex-grow overflow-y-auto p-0 bg-white relative">
-                                <div id="noStudentSelectedMsg" class="absolute inset-0 flex items-center justify-center text-gray-400 text-xs font-medium bg-gray-50">Selecione um aluno na lista ao lado para iniciar.</div>
-                                <table id="gradesTableContainer" class="w-full text-left hidden border-collapse">
-                                    <thead class="bg-gray-50 sticky top-0"><tr class="text-gray-500 text-[10px] uppercase tracking-wider"><th class="p-4 font-bold border-b">Disciplina</th><th class="p-4 font-bold border-b">Período</th><th class="p-4 font-bold border-b text-center">Faltas</th><th class="p-4 font-bold border-b text-right">Nota Final</th></tr></thead>
-                                    <tbody id="gradesTable" class="divide-y divide-gray-100 text-xs font-medium"></tbody>
-                                </table>
+                                <div id="noStudentSelectedMsg" class="absolute inset-0 flex items-center justify-center text-gray-400 text-xs font-medium bg-gray-50 z-20">Selecione um aluno na lista ao lado para iniciar.</div>
+                                <div id="chartContainer" class="hidden m-4 p-4 bg-gray-50 rounded-2xl border border-gray-100 h-64 shrink-0"><canvas id="performanceChart"></canvas></div>
+                                <table id="gradesTableContainer" class="w-full text-left hidden border-collapse pb-4"><thead class="bg-gray-50 sticky top-0 shadow-sm z-10"><tr class="text-gray-500 text-[10px] uppercase tracking-wider"><th class="p-4 font-bold border-b">Disciplina</th><th class="p-4 font-bold border-b">Período</th><th class="p-4 font-bold border-b text-center">Faltas</th><th class="p-4 font-bold border-b text-right">Nota Final</th></tr></thead><tbody id="gradesTable" class="divide-y divide-gray-100 text-xs font-medium"></tbody></table>
                             </div>
                         </div>
                     </div>
                 </div>
 
-                <div id="tab-attendance" class="view-panel hidden bg-white rounded-3xl shadow-2xl p-4 md:p-6 w-full h-full flex flex-col space-y-5">
-                    <div class="border-b pb-4 shrink-0">
-                        <h3 class="font-black text-gray-800 text-lg flex items-center gap-2"><div class="w-8 h-8 rounded-lg bg-indigo-100 text-indigo-600 flex items-center justify-center"><i class="ph ph-list-checks text-xl"></i></div> Controle de Frequência</h3>
+                <div id="tab-attendance" class="view-panel hidden bg-white rounded-3xl shadow-2xl p-4 md:p-6 w-full h-full flex flex-col space-y-4">
+                    <div class="border-b pb-3 shrink-0 flex justify-between items-center">
+                        <h3 class="font-black text-gray-800 text-lg flex items-center gap-2"><div class="w-8 h-8 rounded-lg bg-indigo-100 text-indigo-600 flex items-center justify-center"><i class="ph ph-list-checks text-xl"></i></div> Frequência Diária</h3>
+                    </div>
+
+                    <div id="attendanceTabMenu" class="bg-gray-100 p-1.5 rounded-xl flex text-xs font-bold text-gray-500 shadow-inner shrink-0">
+                        <button onclick="switchAttendanceTab('call')" id="attTabBtn-call" class="flex-grow py-2.5 px-4 rounded-lg bg-white shadow-sm text-indigo-600 transition">Fazer Chamada</button>
+                        <button onclick="switchAttendanceTab('report')" id="attTabBtn-report" class="flex-grow py-2.5 px-4 rounded-lg hover:text-gray-800 transition">Relatório de Faltas</button>
                     </div>
                     
-                    <div id="attendanceFormContainer" class="bg-indigo-50/30 p-5 rounded-2xl border border-indigo-100 shadow-sm shrink-0">
-                        <h3 class="text-xs font-black text-indigo-700 uppercase tracking-wider mb-4">Realizar Chamada Diária (Lote)</h3>
-                        
-                        <div class="flex flex-col sm:flex-row gap-3 text-xs mb-4">
-                            <div class="w-full sm:w-1/3">
-                                <label class="block font-bold text-gray-500 mb-1 ml-1 text-[10px] uppercase">Data Base</label>
-                                <input type="date" id="attendanceDate" onchange="loadAttendanceClass()" class="w-full p-3 border border-gray-200 rounded-xl bg-white outline-none focus:border-indigo-500 font-bold text-indigo-700 shadow-sm cursor-pointer" required>
-                            </div>
-                            <div class="w-full sm:w-2/3">
-                                <label class="block font-bold text-gray-500 mb-1 ml-1 text-[10px] uppercase">Turma Alvo</label>
-                                <select id="attendanceClassSelect" onchange="loadAttendanceClass()" class="w-full p-3 border border-gray-200 rounded-xl bg-white outline-none focus:border-indigo-500 font-bold text-gray-700 shadow-sm cursor-pointer"></select>
+                    <div class="flex-grow overflow-y-auto no-scrollbar relative">
+                        <div id="attendanceView-call" class="flex flex-col h-full fade-in">
+                            <div id="attendanceFormContainer" class="bg-indigo-50/30 p-5 rounded-2xl border border-indigo-100 shadow-sm flex flex-col h-full min-h-[350px]">
+                                <h3 class="text-xs font-black text-indigo-700 uppercase tracking-wider mb-4 shrink-0">Chamada (Lote)</h3>
+                                <div class="flex flex-col sm:flex-row gap-3 text-xs mb-4 shrink-0">
+                                    <div class="w-full sm:w-1/3">
+                                        <label class="block font-bold text-gray-500 mb-1 ml-1 text-[10px] uppercase">Data Base</label>
+                                        <input type="date" id="attendanceDate" onchange="loadAttendanceClass()" class="w-full p-3 border border-gray-200 rounded-xl bg-white font-bold text-indigo-700 shadow-sm cursor-pointer outline-none focus:border-indigo-500" required>
+                                    </div>
+                                    <div class="w-full sm:w-2/3">
+                                        <label class="block font-bold text-gray-500 mb-1 ml-1 text-[10px] uppercase">Turma Alvo</label>
+                                        <select id="attendanceClassSelect" onchange="loadAttendanceClass()" class="w-full p-3 border border-gray-200 rounded-xl bg-white font-bold text-gray-700 shadow-sm cursor-pointer outline-none focus:border-indigo-500"></select>
+                                    </div>
+                                </div>
+                                <div id="attendanceListForm" class="hidden space-y-2 flex-grow overflow-y-auto border border-gray-200 p-3 rounded-xl bg-white shadow-inner mb-4 no-scrollbar"></div>
+                                <button id="btnSaveAttendance" onclick="saveBulkAttendance()" class="hidden w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3.5 rounded-xl shadow-md shrink-0 transition">Gravar Chamada no Sistema</button>
                             </div>
                         </div>
-                        
-                        <div id="attendanceListForm" class="hidden space-y-2 max-h-72 overflow-y-auto border border-gray-200 p-3 rounded-xl bg-white shadow-inner mb-4 no-scrollbar"></div>
-                        
-                        <button id="btnSaveAttendance" onclick="saveBulkAttendance()" class="hidden w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3.5 rounded-xl transition shadow-md tracking-wide">Gravar Chamada no Sistema</button>
-                    </div>
-                    
-                    <div class="bg-gray-50 rounded-2xl border border-gray-200 flex-grow p-5 shadow-sm flex flex-col min-h-[250px] overflow-hidden">
-                        <h3 id="attendanceReportTitle" class="text-xs font-black uppercase text-gray-500 tracking-wider border-b border-gray-200 pb-3 mb-3 shrink-0">Relatório Global de Faltas</h3>
-                        <ul id="attendanceReportList" class="text-xs space-y-2 overflow-y-auto flex-grow no-scrollbar"></ul>
+
+                        <div id="attendanceView-report" class="hidden flex flex-col h-full fade-in">
+                            <div class="bg-gray-50 rounded-2xl border border-gray-200 flex-grow p-5 shadow-sm flex flex-col overflow-hidden">
+                                <h3 id="attendanceReportTitle" class="text-xs font-black uppercase text-gray-500 tracking-wider border-b border-gray-200 pb-3 mb-3 shrink-0">Relatório de Faltas</h3>
+                                <ul id="attendanceReportList" class="text-xs space-y-2 overflow-y-auto flex-grow no-scrollbar"></ul>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
                 <div id="tab-events" class="view-panel hidden bg-white rounded-3xl shadow-2xl p-4 md:p-6 w-full h-full flex flex-col space-y-5">
-                    <div class="border-b pb-4 shrink-0">
-                        <h3 class="font-black text-gray-800 text-lg flex items-center gap-2"><div class="w-8 h-8 rounded-lg bg-emerald-100 text-emerald-600 flex items-center justify-center"><i class="ph ph-calendar text-xl"></i></div> Calendário Escolar</h3>
-                    </div>
-                    
-                    <div id="eventFormContainer" class="bg-emerald-50/30 p-5 rounded-2xl border border-emerald-100 shadow-sm shrink-0">
-                        <h3 id="eventFormTitle" class="text-xs font-black text-emerald-700 uppercase tracking-wider mb-4">Agendar Novo Evento</h3>
-                        <form id="eventForm" onsubmit="handleEventSubmit(event)" class="space-y-4 text-xs font-medium">
-                            <div class="grid grid-cols-1 sm:grid-cols-4 gap-3">
-                                <div class="sm:col-span-2"><label class="block font-bold text-gray-500 mb-1 ml-1 text-[10px] uppercase">Título</label><input type="text" id="eventTitleInput" required placeholder="Ex: Feira de Ciências" class="w-full p-3 border border-gray-200 rounded-xl outline-none focus:border-emerald-500"></div>
-                                <div class="sm:col-span-1"><label class="block font-bold text-gray-500 mb-1 ml-1 text-[10px] uppercase">Data</label><input type="date" id="eventDateInput" required class="w-full p-3 border border-gray-200 rounded-xl outline-none focus:border-emerald-500 bg-white"></div>
-                                <div class="sm:col-span-1"><label class="block font-bold text-gray-500 mb-1 ml-1 text-[10px] uppercase">Horário</label><input type="time" id="eventTimeInput" required class="w-full p-3 border border-gray-200 rounded-xl outline-none focus:border-emerald-500 bg-white"></div>
-                            </div>
-                            <div class="flex flex-col sm:flex-row gap-3">
-                                <div class="flex-grow"><label class="block font-bold text-gray-500 mb-1 ml-1 text-[10px] uppercase">Detalhes Adicionais</label><input type="text" id="eventDescInput" placeholder="Descreva os detalhes..." class="w-full p-3 border border-gray-200 rounded-xl outline-none focus:border-emerald-500"></div>
-                                <div class="flex gap-2 sm:items-end w-full sm:w-auto mt-2 sm:mt-0">
-                                    <button type="button" id="btnCancelEvent" onclick="cancelEventEdit()" class="hidden flex-1 sm:flex-none bg-gray-200 hover:bg-gray-300 text-gray-700 px-6 py-3 rounded-xl font-bold transition">Cancelar</button>
-                                    <button type="submit" id="submitEventBtn" class="flex-1 sm:flex-none bg-emerald-600 hover:bg-emerald-700 text-white px-8 py-3 rounded-xl font-bold shadow-md transition">Confirmar Data</button>
-                                </div>
-                            </div>
-                        </form>
-                    </div>
-                    
-                    <div class="bg-gray-50 rounded-2xl border border-gray-200 flex-grow p-5 shadow-sm flex flex-col overflow-hidden">
-                        <h3 class="text-xs font-black uppercase text-gray-500 tracking-wider border-b border-gray-200 pb-3 mb-3 shrink-0">Próximos Eventos</h3>
-                        <div id="eventsList" class="space-y-3 overflow-y-auto flex-grow no-scrollbar"></div>
-                    </div>
+                    <div class="border-b pb-4 shrink-0"><h3 class="font-black text-gray-800 text-lg flex items-center gap-2"><div class="w-8 h-8 rounded-lg bg-emerald-100 text-emerald-600 flex items-center justify-center"><i class="ph ph-calendar text-xl"></i></div> Calendário Escolar</h3></div>
+                    <div id="eventFormContainer" class="bg-emerald-50/30 p-5 rounded-2xl border border-emerald-100 shadow-sm shrink-0"><h3 id="eventFormTitle" class="text-xs font-black text-emerald-700 uppercase tracking-wider mb-4">Novo Evento</h3><form id="eventForm" onsubmit="handleEventSubmit(event)" class="space-y-4 text-xs font-medium"><div class="grid grid-cols-1 sm:grid-cols-4 gap-3"><div class="sm:col-span-2"><label class="block font-bold text-gray-500 mb-1 ml-1 text-[10px] uppercase">Título</label><input type="text" id="eventTitleInput" required class="w-full p-3 border rounded-xl"></div><div class="sm:col-span-1"><label class="block font-bold text-gray-500 mb-1 ml-1 text-[10px] uppercase">Data</label><input type="date" id="eventDateInput" required class="w-full p-3 border rounded-xl bg-white"></div><div class="sm:col-span-1"><label class="block font-bold text-gray-500 mb-1 ml-1 text-[10px] uppercase">Horário</label><input type="time" id="eventTimeInput" required class="w-full p-3 border rounded-xl bg-white"></div></div><div class="flex flex-col sm:flex-row gap-3"><div class="flex-grow"><label class="block font-bold text-gray-500 mb-1 ml-1 text-[10px] uppercase">Detalhes</label><input type="text" id="eventDescInput" class="w-full p-3 border rounded-xl"></div><div class="flex gap-2 sm:items-end w-full sm:w-auto mt-2 sm:mt-0"><button type="button" id="btnCancelEvent" onclick="cancelEventEdit()" class="hidden flex-1 bg-gray-200 py-3 rounded-xl font-bold">Cancelar</button><button type="submit" id="submitEventBtn" class="flex-1 bg-emerald-600 text-white px-8 py-3 rounded-xl font-bold shadow-md">Confirmar Data</button></div></div></form></div>
+                    <div class="bg-gray-50 rounded-2xl border flex-grow p-5 shadow-sm flex flex-col overflow-hidden"><h3 class="text-xs font-black uppercase text-gray-500 tracking-wider border-b pb-3 mb-3 shrink-0">Próximos Eventos</h3><div id="eventsList" class="space-y-3 overflow-y-auto flex-grow no-scrollbar"></div></div>
                 </div>
 
                 <div id="tab-notes" class="view-panel hidden bg-white rounded-3xl shadow-2xl p-4 md:p-6 w-full h-full flex flex-col space-y-5">
-                    <div class="border-b pb-4 shrink-0">
-                        <h3 class="font-black text-gray-800 text-lg flex items-center gap-2"><div class="w-8 h-8 rounded-lg bg-yellow-100 text-yellow-600 flex items-center justify-center"><i class="ph ph-note-pencil text-xl"></i></div> Minhas Anotações</h3>
-                    </div>
-                    
+                    <div class="border-b pb-4 shrink-0"><h3 class="font-black text-gray-800 text-lg flex items-center gap-2"><div class="w-8 h-8 rounded-lg bg-yellow-100 text-yellow-600 flex items-center justify-center"><i class="ph ph-note-pencil text-xl"></i></div> Minhas Anotações</h3></div>
                     <div class="flex flex-col md:flex-row gap-5 flex-grow overflow-visible md:overflow-hidden min-h-[500px]">
-                        <div class="md:w-1/3 flex flex-col bg-yellow-50/30 rounded-2xl border border-yellow-100 shadow-sm p-5 shrink-0 h-auto md:h-full overflow-y-auto">
-                            <h4 id="noteFormTitle" class="text-xs font-black text-yellow-700 uppercase tracking-wider mb-4 border-b border-yellow-200 pb-2">Nova Anotação</h4>
-                            <form id="noteForm" onsubmit="handleNoteSubmit(event)" class="space-y-4 flex flex-col flex-grow">
-                                <div>
-                                    <label class="block font-bold text-yellow-800 mb-1 ml-1 text-[10px] uppercase">Título</label>
-                                    <input type="text" id="noteTitle" required placeholder="Ex: Pauta da Reunião" class="w-full p-3 border border-yellow-200 rounded-xl outline-none focus:border-yellow-500 text-sm font-bold bg-white">
-                                </div>
-                                <div>
-                                    <label class="block font-bold text-yellow-800 mb-1 ml-1 text-[10px] uppercase">Formato</label>
-                                    <select id="noteType" class="w-full p-3 border border-yellow-200 rounded-xl outline-none focus:border-yellow-500 text-xs font-bold text-gray-600 bg-white cursor-pointer">
-                                        <option value="text">Texto Normal Livre</option>
-                                        <option value="list">Lista (Itens separados por Enter)</option>
-                                    </select>
-                                </div>
-                                <div class="flex-grow flex flex-col min-h-[150px]">
-                                    <label class="block font-bold text-yellow-800 mb-1 ml-1 text-[10px] uppercase">Conteúdo</label>
-                                    <textarea id="noteContent" required placeholder="Escreva suas ideias aqui..." class="w-full flex-grow p-3 border border-yellow-200 rounded-xl outline-none focus:border-yellow-500 text-sm resize-none bg-white font-medium text-gray-700"></textarea>
-                                </div>
-                                <div class="flex gap-2 shrink-0 pt-2 border-t border-yellow-100">
-                                    <button type="button" id="btnCancelNote" onclick="cancelNoteEdit()" class="hidden flex-1 bg-gray-200 hover:bg-gray-300 text-gray-700 py-3 rounded-xl font-bold transition text-xs shadow-sm">Cancelar</button>
-                                    <button type="submit" id="btnSaveNote" class="flex-1 bg-yellow-500 hover:bg-yellow-600 text-white py-3 rounded-xl font-bold shadow-md transition text-xs">Salvar Anotação</button>
-                                </div>
-                            </form>
-                        </div>
-                        
-                        <div class="md:w-2/3 flex flex-col bg-gray-50 rounded-2xl border border-gray-200 shadow-sm p-5 flex-grow md:h-full overflow-hidden">
-                            <h4 class="text-xs font-black uppercase text-gray-500 tracking-wider border-b border-gray-200 pb-3 mb-4 shrink-0">Anotações Salvas</h4>
-                            <div id="notesListContainer" class="grid grid-cols-1 sm:grid-cols-2 gap-4 overflow-y-auto no-scrollbar content-start pb-4"></div>
-                        </div>
+                        <div class="md:w-1/3 flex flex-col bg-yellow-50/30 rounded-2xl border border-yellow-100 shadow-sm p-5 shrink-0 h-auto md:h-full overflow-y-auto"><h4 id="noteFormTitle" class="text-xs font-black text-yellow-700 uppercase tracking-wider mb-4 border-b pb-2">Nova Anotação</h4><form id="noteForm" onsubmit="handleNoteSubmit(event)" class="space-y-4 flex flex-col flex-grow"><div><label class="block font-bold text-yellow-800 mb-1 ml-1 text-[10px] uppercase">Título</label><input type="text" id="noteTitle" required class="w-full p-3 border border-yellow-200 rounded-xl text-sm font-bold bg-white"></div><div><label class="block font-bold text-yellow-800 mb-1 ml-1 text-[10px] uppercase">Formato</label><select id="noteType" class="w-full p-3 border border-yellow-200 rounded-xl text-xs font-bold text-gray-600 bg-white"><option value="text">Texto Normal Livre</option><option value="list">Lista Interativa</option></select></div><div class="flex-grow flex flex-col min-h-[150px]"><label class="block font-bold text-yellow-800 mb-1 ml-1 text-[10px] uppercase">Conteúdo</label><textarea id="noteContent" required class="w-full flex-grow p-3 border border-yellow-200 rounded-xl text-sm resize-none bg-white font-medium text-gray-700"></textarea></div><div class="flex gap-2 shrink-0 pt-2 border-t border-yellow-100"><button type="button" id="btnCancelNote" onclick="cancelNoteEdit()" class="hidden flex-1 bg-gray-200 py-3 rounded-xl font-bold text-xs shadow-sm">Cancelar</button><button type="submit" id="btnSaveNote" class="flex-1 bg-yellow-500 text-white py-3 rounded-xl font-bold shadow-md text-xs">Salvar</button></div></form></div>
+                        <div class="md:w-2/3 flex flex-col bg-gray-50 rounded-2xl border border-gray-200 shadow-sm p-5 flex-grow md:h-full overflow-hidden"><h4 class="text-xs font-black uppercase text-gray-500 tracking-wider border-b pb-3 mb-4 shrink-0">Anotações Salvas</h4><div id="notesListContainer" class="grid grid-cols-1 sm:grid-cols-2 gap-4 overflow-y-auto no-scrollbar content-start pb-4"></div></div>
+                    </div>
+                </div>
+
+                <div id="tab-canteen" class="view-panel hidden bg-white rounded-3xl shadow-2xl p-4 md:p-6 w-full h-full flex flex-col space-y-5">
+                    <div class="border-b pb-4 shrink-0"><h3 class="font-black text-gray-800 text-lg flex items-center gap-2"><div class="w-8 h-8 rounded-lg bg-orange-100 text-orange-600 flex items-center justify-center"><i class="ph ph-fork-knife text-xl"></i></div> Cardápio da Cantina</h3></div>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-5 flex-grow overflow-y-auto no-scrollbar">
+                        <div id="canteenFormContainer" class="hidden bg-orange-50/30 p-5 rounded-2xl border border-orange-100 shadow-sm flex flex-col space-y-4 h-fit"><h4 class="text-xs font-black text-orange-700 uppercase tracking-wider border-b border-orange-200 pb-2">Atualizar Cardápio</h4><form onsubmit="saveCanteenMenu(event)" class="space-y-3 text-xs font-medium"><div><label class="block font-bold text-gray-500 mb-1 ml-1 text-[10px] uppercase">Dia da Semana</label><select id="canteenDay" class="w-full p-2.5 border border-gray-200 rounded-xl bg-white font-bold text-gray-700"><option value="Segunda-feira">Segunda-feira</option><option value="Terça-feira">Terça-feira</option><option value="Quarta-feira">Quarta-feira</option><option value="Quinta-feira">Quinta-feira</option><option value="Sexta-feira">Sexta-feira</option></select></div><div><label class="block font-bold text-gray-500 mb-1 ml-1 text-[10px] uppercase">Prato Principal</label><input type="text" id="canteenMeal" required class="w-full p-2.5 border border-gray-200 rounded-xl bg-white"></div><div><label class="block font-bold text-gray-500 mb-1 ml-1 text-[10px] uppercase">Acompanhamento</label><input type="text" id="canteenDessert" required class="w-full p-2.5 border border-gray-200 rounded-xl bg-white"></div><div class="flex gap-2 pt-2"><button type="button" id="btnCancelCanteen" onclick="cancelCanteenEdit()" class="hidden flex-1 bg-gray-200 text-gray-700 py-3 rounded-xl font-bold">Cancelar</button><button type="submit" id="btnSaveCanteen" class="flex-grow bg-orange-500 text-white font-bold py-3 rounded-xl shadow-md">Publicar</button></div></form></div>
+                        <div class="md:col-span-2 bg-gray-50 rounded-2xl border border-gray-200 p-5 shadow-inner flex flex-col space-y-3"><h4 class="text-xs font-black uppercase text-gray-500 tracking-wider border-b border-gray-200 pb-2">Menu da Semana</h4><div id="canteenCardsContainer" class="space-y-3 overflow-y-auto no-scrollbar flex-grow"></div></div>
                     </div>
                 </div>
 
                 <div id="tab-messages" class="view-panel hidden bg-white rounded-3xl shadow-2xl p-0 flex overflow-hidden flex-grow md:h-[600px] min-h-[500px] w-full relative">
-                    
                     <div id="chatSidebar" class="w-full md:w-1/3 border-r border-gray-200 flex flex-col bg-white shrink-0 absolute md:relative z-10 h-full transition-transform duration-300">
-                        <div class="p-5 border-b border-gray-100 bg-white flex items-center justify-between shrink-0">
-                            <span class="text-lg font-black text-gray-800 flex items-center gap-2"><div class="w-8 h-8 rounded-lg bg-purple-100 text-purple-600 flex items-center justify-center"><i class="ph ph-chats text-xl"></i></div> Conversas</span>
-                            <button onclick="openNewChatModal()" class="text-purple-600 hover:bg-purple-50 p-2 rounded-xl transition shadow-sm border border-purple-100" title="Iniciar Nova Conversa">
-                                <i class="ph ph-plus-square text-xl"></i>
-                            </button>
-                        </div>
-                        <div class="p-3 border-b border-gray-100 shrink-0 bg-gray-50/50">
-                            <div class="relative">
-                                <i class="ph ph-magnifying-glass absolute left-3.5 top-2.5 text-gray-400 text-lg"></i>
-                                <input type="text" id="chatSearchInput" onkeyup="filterChatContacts()" placeholder="Pesquisar histórico..." class="w-full pl-10 p-2.5 bg-white border border-gray-200 rounded-xl text-xs font-medium outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20 transition shadow-sm">
-                            </div>
-                        </div>
-                        <div id="chatContactsList" class="flex-grow overflow-y-auto overflow-x-hidden divide-y divide-gray-50 no-scrollbar bg-white">
-                            <div class="p-8 text-center text-xs text-gray-400 font-medium">Nenhuma conversa ativa no momento.</div>
-                        </div>
+                        <div class="p-5 border-b border-gray-100 bg-white flex items-center justify-between shrink-0"><span class="text-lg font-black text-gray-800 flex items-center gap-2"><div class="w-8 h-8 rounded-lg bg-purple-100 text-purple-600 flex items-center justify-center"><i class="ph ph-chats text-xl"></i></div> Conversas</span><button onclick="openNewChatModal()" class="text-purple-600 hover:bg-purple-50 p-2 rounded-xl border border-purple-100"><i class="ph ph-plus-square text-xl"></i></button></div>
+                        <div class="p-3 border-b border-gray-100 shrink-0 bg-gray-50/50"><div class="relative"><i class="ph ph-magnifying-glass absolute left-3.5 top-2.5 text-gray-400 text-lg"></i><input type="text" id="chatSearchInput" onkeyup="filterChatContacts()" placeholder="Pesquisar histórico..." class="w-full pl-10 p-2.5 bg-white border border-gray-200 rounded-xl text-xs font-medium outline-none"></div></div>
+                        <div id="chatContactsList" class="flex-grow overflow-y-auto divide-y divide-gray-50 no-scrollbar bg-white"></div>
                     </div>
-                    
                     <div id="chatArea" class="hidden md:flex flex-col w-full md:w-2/3 bg-[#efeae2] relative h-full">
                         <div class="absolute inset-0 opacity-[0.03] pointer-events-none bg-[url('https://www.transparenttextures.com/patterns/cubes.png')]"></div>
-                        
-                        <div class="p-4 border-b border-gray-200 bg-white flex items-center gap-4 shrink-0 shadow-sm z-10 relative">
-                            <button onclick="closeChatAreaMobile()" class="md:hidden text-gray-500 hover:bg-gray-100 p-2 rounded-xl transition"><i class="ph ph-arrow-left text-xl"></i></button>
-                            <img id="activeChatAvatar" src="https://ui-avatars.com/api/?name=IC&background=e2e8f0" class="w-11 h-11 rounded-full border-2 border-gray-100 object-cover bg-white shadow-sm">
-                            <div class="flex flex-col">
-                                <h4 id="activeChatName" class="text-base font-black text-gray-800 leading-tight">Chat de Mensagens</h4>
-                                <span id="activeChatStatus" class="text-[11px] font-bold text-purple-600 uppercase tracking-wider mt-0.5">Selecione uma conversa ao lado</span>
-                            </div>
-                        </div>
-                        
-                        <div id="chatMessagesBox" class="flex-grow overflow-y-auto p-4 md:p-6 space-y-4 relative z-10 no-scrollbar">
-                            <div id="noChatSelectedMsg" class="absolute inset-0 flex items-center justify-center pointer-events-none">
-                                <div class="bg-white/90 backdrop-blur px-8 py-4 rounded-full shadow-lg text-xs font-bold text-gray-500 border border-gray-100">
-                                    <i class="ph ph-hand-waving text-lg align-middle mr-1 text-purple-500"></i> Comece uma interação selecionando um chat.
-                                </div>
-                            </div>
-                        </div>
-                        
-                        <div id="chatInputArea" class="p-4 bg-white shrink-0 hidden z-10 border-t border-gray-200 shadow-[0_-10px_20px_rgba(0,0,0,0.02)]">
-                            <form onsubmit="sendMessage(event)" class="flex items-end gap-3">
-                                <button type="button" onclick="document.getElementById('chatFileInput').click()" class="text-gray-400 hover:bg-purple-50 hover:text-purple-600 p-3 rounded-full transition shrink-0"><i class="ph ph-paperclip text-2xl"></i></button>
-                                <input type="file" id="chatFileInput" accept=".pdf,.doc,.docx,.xls,.xlsx,.csv,.jpg,.jpeg,.png" onchange="handleFileSelection()" class="hidden">
-                                
-                                <div class="flex-grow bg-gray-100 rounded-2xl relative flex items-center border border-transparent focus-within:border-purple-300 focus-within:bg-white transition px-5 py-1.5 shadow-inner">
-                                    <input type="text" id="chatMessageInput" placeholder="Digite sua mensagem..." autocomplete="off" class="w-full bg-transparent py-3 text-sm outline-none font-medium text-gray-700">
-                                </div>
-                                
-                                <button type="submit" id="btnSendMessage" class="bg-[rgb(8,33,223)] text-white rounded-full transition hover:bg-[#0618a6] hover:scale-105 shadow-md shrink-0 flex items-center justify-center h-12 w-12"><i class="ph ph-paper-plane-right text-xl ml-0.5"></i></button>
-                            </form>
-                            <div id="chatAttachmentPreview" class="hidden mt-3 p-3 bg-purple-50 rounded-xl flex items-center justify-between text-xs border border-purple-100 shadow-sm">
-                                <div class="flex items-center gap-3 overflow-hidden"><div class="w-8 h-8 rounded bg-white flex items-center justify-center shadow-sm"><i class="ph ph-file-text text-purple-600 text-lg"></i></div><span id="fileNameDisplay" class="font-bold text-purple-800 truncate"></span></div>
-                                <button type="button" onclick="clearFileSelection()" class="text-red-500 hover:bg-red-100 p-2 rounded-lg font-bold transition">Remover</button>
-                            </div>
-                        </div>
+                        <div class="p-4 border-b bg-white flex items-center gap-4 shrink-0 shadow-sm z-10 relative"><button onclick="closeChatAreaMobile()" class="md:hidden text-gray-500 p-2 rounded-xl"><i class="ph ph-arrow-left text-xl"></i></button><img id="activeChatAvatar" src="" class="w-11 h-11 rounded-full border-2 border-gray-100 object-cover bg-white"><div class="flex flex-col"><h4 id="activeChatName" class="text-base font-black text-gray-800 leading-tight">Chat</h4><span id="activeChatStatus" class="text-[11px] font-bold text-purple-600 uppercase">Selecione uma conversa</span></div></div>
+                        <div id="chatMessagesBox" class="flex-grow overflow-y-auto p-4 md:p-6 space-y-4 relative z-10 no-scrollbar"></div>
+                        <div id="chatInputArea" class="p-4 bg-white shrink-0 hidden z-10 border-t shadow-[0_-10px_20px_rgba(0,0,0,0.02)]"><form onsubmit="sendMessage(event)" class="flex items-end gap-3"><button type="button" onclick="document.getElementById('chatFileInput').click()" class="text-gray-400 p-3 rounded-full shrink-0"><i class="ph ph-paperclip text-2xl"></i></button><input type="file" id="chatFileInput" accept=".pdf,.doc,.jpg,.png" onchange="handleFileSelection()" class="hidden"><div class="flex-grow bg-gray-100 rounded-2xl relative flex items-center px-5 py-1.5"><input type="text" id="chatMessageInput" placeholder="Mensagem..." autocomplete="off" class="w-full bg-transparent py-3 text-sm outline-none font-medium text-gray-700"></div><button type="submit" id="btnSendMessage" class="bg-[rgb(8,33,223)] text-white rounded-full h-12 w-12 flex items-center justify-center shrink-0"><i class="ph ph-paper-plane-right text-xl"></i></button></form><div id="chatAttachmentPreview" class="hidden mt-3 p-3 bg-purple-50 rounded-xl flex items-center justify-between text-xs border"><div class="flex items-center gap-3"><div class="w-8 h-8 rounded bg-white flex items-center justify-center"><i class="ph ph-file-text text-purple-600"></i></div><span id="fileNameDisplay" class="font-bold text-purple-800"></span></div><button type="button" onclick="clearFileSelection()" class="text-red-500 font-bold">Remover</button></div></div>
                     </div>
                 </div>
             </div>
@@ -454,98 +197,13 @@
 
     <nav id="mobileBottomNav" class="hidden md:hidden fixed bottom-0 left-0 right-0 w-full bg-white border-t border-gray-200 shadow-[0_-5px_25px_rgba(0,0,0,0.08)] z-50 pb-safe justify-around items-center px-2 pt-1"></nav>
 
-    <div id="profileModal" class="hidden fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[60] p-4">
-        <div class="bg-white rounded-3xl shadow-2xl w-full max-w-sm overflow-hidden fade-in relative border border-gray-100">
-            <div class="h-28 bg-[rgb(8,33,223)] relative z-0 overflow-hidden">
-                <div class="absolute inset-0 opacity-20 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')]"></div>
-                <button onclick="closeProfileModal()" class="absolute top-4 right-4 text-white bg-black/20 hover:bg-black/40 rounded-full p-1.5 transition z-10 backdrop-blur"><i class="ph ph-x text-lg"></i></button>
-            </div>
-            <div class="px-8 pb-8 text-center relative z-10">
-                <div class="flex justify-center -mt-14 mb-4 relative z-20">
-                    <img id="modalAvatarView" src="" class="w-24 h-24 rounded-full border-4 border-white object-cover bg-gray-100 shadow-xl">
-                </div>
-                
-                <div id="profileViewMode">
-                    <h3 id="modalNameView" class="text-xl font-black text-gray-800 mb-1"></h3>
-                    <p id="modalEmailView" class="text-xs font-bold text-gray-400 mb-6 bg-gray-50 inline-block px-3 py-1 rounded-lg border"></p>
-                    <button onclick="toggleProfileEdit()" class="w-full bg-gray-100 hover:bg-gray-200 text-gray-800 py-3 rounded-xl text-sm font-bold transition shadow-sm">Editar Meu Perfil / Status</button>
-                </div>
-                
-                <div id="profileEditMode" class="hidden text-left mt-2">
-                    <form onsubmit="saveProfileEdits(event)" class="space-y-4 text-xs font-medium">
-                        <div class="text-center mb-2">
-                            <label class="cursor-pointer text-[10px] font-bold text-[rgb(8,33,223)] hover:text-white hover:bg-[rgb(8,33,223)] border border-[rgb(8,33,223)] bg-blue-50 px-4 py-2 rounded-xl transition-all shadow-sm inline-flex items-center gap-1.5">
-                                <i class="ph ph-camera text-base"></i> Alterar Foto
-                                <input type="file" id="imageUploadInput" accept="image/*" class="hidden" onchange="handleImageUpload(event)">
-                            </label>
-                        </div>
-                        <div>
-                            <label class="block font-bold text-gray-500 uppercase text-[10px] mb-1.5 ml-1">Meu Status Escolar</label>
-                            <select id="editStatusInput" class="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:border-[rgb(8,33,223)] transition font-bold text-gray-700 cursor-pointer shadow-sm">
-                                <option value="Online">🟢 Online</option>
-                                <option value="Ausente">... Ausente</option>
-                                <option value="De Férias">🌴 De Férias</option>
-                                <option value="Em Reunião">📅 Em Reunião</option>
-                            </select>
-                        </div>
-                        <div>
-                            <label class="block font-bold text-gray-500 uppercase text-[10px] mb-1.5 ml-1">Nome Completo</label>
-                            <input type="text" id="editNameInput" required class="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:border-[rgb(8,33,223)] transition">
-                        </div>
-                        <div>
-                            <label class="block font-bold text-gray-500 uppercase text-[10px] mb-1.5 ml-1">Nova Senha de Acesso</label>
-                            <input type="text" id="editPassInput" required class="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:border-[rgb(8,33,223)] transition">
-                        </div>
-                        <div class="flex gap-3 pt-3">
-                            <button type="button" onclick="toggleProfileEdit()" class="flex-1 bg-gray-200 hover:bg-gray-300 py-3 rounded-xl font-bold text-gray-700 transition">Voltar</button>
-                            <button type="submit" id="btnSaveProfile" class="flex-1 bg-[rgb(8,33,223)] hover:bg-[#0618a6] text-white py-3 rounded-xl font-bold transition shadow-md">Salvar</button>
-                        </div>
-                    </form>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <div id="newChatModal" class="hidden fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[60] p-4">
-        <div class="bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden flex flex-col h-[500px] border border-gray-100 fade-in">
-            <div class="p-4 border-b bg-gray-50 flex justify-between items-center shrink-0">
-                <h3 class="font-black text-gray-800 text-sm"><i class="ph ph-chat-circle-plus text-purple-600 mr-1 text-lg align-middle"></i> Iniciar Nova Conversa</h3>
-                <button onclick="closeNewChatModal()" class="text-gray-500 hover:text-red-500 transition"><i class="ph ph-x text-xl"></i></button>
-            </div>
-            <div class="p-3 border-b shrink-0 bg-white">
-                <div class="relative">
-                    <i class="ph ph-magnifying-glass absolute left-3.5 top-2.5 text-gray-400 text-lg"></i>
-                    <input type="text" id="newChatSearchInput" onkeyup="filterNewChatContacts()" placeholder="Procurar pessoa ou grupo corporativo..." class="w-full pl-10 p-2.5 bg-gray-100 border border-gray-200 rounded-xl text-xs font-medium outline-none focus:border-purple-500 transition">
-                </div>
-            </div>
-            <div id="newChatContactsList" class="flex-grow overflow-y-auto divide-y divide-gray-50 no-scrollbar p-1"></div>
-        </div>
-    </div>
-
-    <div id="cropModal" class="hidden fixed inset-0 bg-black/90 backdrop-blur flex items-center justify-center z-[70] p-4">
-        <div class="bg-gray-900 rounded-3xl shadow-2xl w-full max-w-md overflow-hidden flex flex-col h-[550px] border border-gray-800">
-            <div class="p-5 border-b border-gray-800 bg-gray-900 flex justify-between items-center shrink-0">
-                <h3 class="font-bold text-white">Ajustar Foto do Perfil</h3>
-                <button onclick="closeCropModal()" class="text-gray-400 hover:text-red-500 transition bg-gray-800 rounded-full p-1.5"><i class="ph ph-x text-lg"></i></button>
-            </div>
-            <div class="flex-grow relative overflow-hidden flex items-center justify-center">
-                <img id="cropImage" src="" class="max-w-full max-h-full">
-            </div>
-            <div class="p-5 border-t border-gray-800 bg-gray-900 flex gap-3 shrink-0">
-                <button onclick="closeCropModal()" class="flex-1 bg-gray-800 hover:bg-gray-700 text-white py-3 rounded-xl font-bold transition">Cancelar</button>
-                <button onclick="applyCrop()" class="flex-1 bg-[rgb(8,33,223)] hover:bg-[#0618a6] text-white py-3 rounded-xl font-bold transition shadow-lg">Cortar e Aplicar</button>
-            </div>
-        </div>
-    </div>
-
-    <div id="deleteModal" class="hidden fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[60] p-4">
-        <div class="bg-white p-8 rounded-3xl shadow-2xl max-w-sm w-full text-center fade-in border border-gray-100">
-            <div class="w-16 h-16 bg-red-100 text-red-600 rounded-full flex items-center justify-center mx-auto mb-4"><i class="ph ph-warning-circle text-3xl"></i></div>
-            <h3 class="text-lg font-black text-gray-800 mb-2">Excluir Registro</h3>
-            <p class="text-sm font-medium text-gray-500 mb-6">Esta ação é permanente e não poderá ser desfeita. Deseja continuar?</p>
-            <div class="flex gap-3"><button onclick="closeDeleteModal()" class="flex-1 bg-gray-100 hover:bg-gray-200 py-3 rounded-xl text-sm font-bold text-gray-700 transition">Cancelar</button><button onclick="executeDeleteEvent()" class="flex-1 bg-red-600 hover:bg-red-700 text-white py-3 rounded-xl text-sm font-bold transition shadow-md">Sim, Excluir</button></div>
-        </div>
-    </div>
+    <div id="profileModal" class="hidden fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[60] p-4"><div class="bg-white rounded-3xl shadow-2xl w-full max-w-sm overflow-hidden fade-in relative"><div class="h-28 bg-[rgb(8,33,223)] relative z-0 overflow-hidden"><button onclick="closeProfileModal()" class="absolute top-4 right-4 text-white bg-black/20 rounded-full p-1.5 z-10"><i class="ph ph-x text-lg"></i></button></div><div class="px-8 pb-8 text-center relative z-10"><div class="flex justify-center -mt-14 mb-4 relative z-20"><img id="modalAvatarView" src="" class="w-24 h-24 rounded-full border-4 border-white object-cover bg-gray-100"></div><div id="profileViewMode"><h3 id="modalNameView" class="text-xl font-black text-gray-800 mb-1"></h3><p id="modalEmailView" class="text-xs font-bold text-gray-400 mb-6 bg-gray-50 inline-block px-3 py-1 rounded-lg border"></p><button onclick="toggleProfileEdit()" class="w-full bg-gray-100 text-gray-800 py-3 rounded-xl text-sm font-bold">Editar Meu Perfil / Status</button></div><div id="profileEditMode" class="hidden text-left mt-2"><form onsubmit="saveProfileEdits(event)" class="space-y-4 text-xs font-medium"><div class="text-center mb-2"><label class="cursor-pointer text-[10px] font-bold text-[rgb(8,33,223)] bg-blue-50 px-4 py-2 rounded-xl inline-flex items-center gap-1.5"><i class="ph ph-camera text-base"></i> Alterar Foto<input type="file" id="imageUploadInput" accept="image/*" class="hidden" onchange="handleImageUpload(event)"></label></div><div><label class="block font-bold text-gray-500 uppercase text-[10px] mb-1.5 ml-1">Status</label><select id="editStatusInput" class="w-full p-3 bg-gray-50 border rounded-xl font-bold"><option value="Online">🟢 Online</option><option value="Ausente">... Ausente</option><option value="De Férias">🌴 De Férias</option><option value="Em Reunião">📅 Em Reunião</option></select></div><div><label class="block font-bold text-gray-500 uppercase text-[10px] mb-1.5 ml-1">Nome</label><input type="text" id="editNameInput" required class="w-full p-3 bg-gray-50 border rounded-xl"></div><div><label class="block font-bold text-gray-500 uppercase text-[10px] mb-1.5 ml-1">Nova Senha</label><input type="text" id="editPassInput" required class="w-full p-3 bg-gray-50 border rounded-xl"></div><div class="flex gap-3 pt-3"><button type="button" onclick="toggleProfileEdit()" class="flex-1 bg-gray-200 py-3 rounded-xl font-bold text-gray-700">Voltar</button><button type="submit" id="btnSaveProfile" class="flex-1 bg-[rgb(8,33,223)] text-white py-3 rounded-xl font-bold">Salvar</button></div></form></div></div></div></div>
+    
+    <div id="newChatModal" class="hidden fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[60] p-4"><div class="bg-white rounded-3xl shadow-2xl w-full max-w-md overflow-hidden flex flex-col h-[500px] border border-gray-100 fade-in"><div class="p-4 border-b bg-gray-50 flex justify-between items-center shrink-0"><h3 class="font-black text-gray-800 text-sm"><i class="ph ph-chat-circle-plus text-purple-600 mr-1 text-lg align-middle"></i> Nova Conversa</h3><button onclick="closeNewChatModal()" class="text-gray-500"><i class="ph ph-x text-xl"></i></button></div><div class="p-3 border-b shrink-0 bg-white"><div class="relative"><i class="ph ph-magnifying-glass absolute left-3.5 top-2.5 text-gray-400 text-lg"></i><input type="text" id="newChatSearchInput" onkeyup="filterNewChatContacts()" placeholder="Procurar contato..." class="w-full pl-10 p-2.5 bg-gray-100 border rounded-xl text-xs font-medium outline-none"></div></div><div id="newChatContactsList" class="flex-grow overflow-y-auto divide-y divide-gray-50 no-scrollbar p-1"></div></div></div>
+    
+    <div id="cropModal" class="hidden fixed inset-0 bg-black/90 backdrop-blur flex items-center justify-center z-[70] p-4"><div class="bg-gray-900 rounded-3xl shadow-2xl w-full max-w-md overflow-hidden flex flex-col h-[550px] border border-gray-800"><div class="p-5 border-b border-gray-800 bg-gray-900 flex justify-between items-center shrink-0"><h3 class="font-bold text-white">Ajustar Foto</h3><button onclick="closeCropModal()" class="text-gray-400 bg-gray-800 rounded-full p-1.5"><i class="ph ph-x text-lg"></i></button></div><div class="flex-grow relative overflow-hidden flex items-center justify-center"><img id="cropImage" src="" class="max-w-full max-h-full"></div><div class="p-5 border-t border-gray-800 bg-gray-900 flex gap-3 shrink-0"><button onclick="closeCropModal()" class="flex-1 bg-gray-800 text-white py-3 rounded-xl font-bold">Cancelar</button><button onclick="applyCrop()" class="flex-1 bg-[rgb(8,33,223)] text-white py-3 rounded-xl font-bold">Aplicar</button></div></div></div>
+    
+    <div id="deleteModal" class="hidden fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[60] p-4"><div class="bg-white p-8 rounded-3xl shadow-2xl max-w-sm w-full text-center fade-in border border-gray-100"><div class="w-16 h-16 bg-red-100 text-red-600 rounded-full flex items-center justify-center mx-auto mb-4"><i class="ph ph-warning-circle text-3xl"></i></div><h3 class="text-lg font-black text-gray-800 mb-2">Excluir Registro</h3><p class="text-sm font-medium text-gray-500 mb-6">Esta ação não poderá ser desfeita.</p><div class="flex gap-3"><button onclick="closeDeleteModal()" class="flex-1 bg-gray-100 py-3 rounded-xl text-sm font-bold text-gray-700">Cancelar</button><button onclick="executeDeleteEvent()" class="flex-1 bg-red-600 text-white py-3 rounded-xl text-sm font-bold shadow-md">Sim, Excluir</button></div></div></div>
 
     <script src="script.js"></script>
 </body>
