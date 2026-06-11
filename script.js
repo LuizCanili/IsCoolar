@@ -158,9 +158,10 @@ function startEditGlobalSubject(id) { const sb = loadedGlobalSubjects.find(x=>x.
 function cancelGlobalSubjectEdit() { editingGlobalSubjectId = null; document.getElementById('newGlobalSubjectName').value = ''; document.getElementById('btnSaveGlobalSubject').innerText = 'Gravar'; document.getElementById('btnCancelGlobalSubject').classList.add('hidden'); }
 async function directorSaveSubjects(e) { e.preventDefault(); const schId = currentUser.role === 'admin' ? currentAdminSchoolId : currentUser.school_id, checkboxes = document.querySelectorAll('.subject-checkbox'), selected = Array.from(checkboxes).filter(cb => cb.checked).map(cb => cb.value), old = await db.collection('subjects').where('school_id','==',schId).get(), batch = db.batch(); old.docs.forEach(doc => batch.delete(doc.ref)); selected.forEach(sub => { const newRef = db.collection('subjects').doc(); batch.set(newRef, { name: sub, school_id: schId }); }); await batch.commit(); loadAdminSubjects(); }
 async function updateGradingSystem() { const val = document.getElementById('globalGradingSystem').value; currentSchoolGradingSystem = val; const schId = currentUser.role === 'admin' ? currentAdminSchoolId : currentUser.school_id; if(!schId) return; await db.collection('schools').doc(schId).update({grading_system: val}); }
-// ==========================================
+
+// ============================================
 // BOLETIM PDF, GRÁFICOS E PLANILHA INTERATIVA
-// ==========================================
+// ============================================
 
 async function loadGrades() { 
     const isParent = currentUser.role === 'parent'; 
@@ -322,7 +323,7 @@ function renderPerformanceChart() {
 function generateBoletimPDF() { if(!currentGradeStudentId) return; const { jsPDF } = window.jspdf; const doc = new jsPDF(); const period = document.getElementById('viewGradePeriodSelect').value, periodLabel = period === 'ALL' ? 'Todos os Períodos' : period, schoolLabel = document.getElementById('userSchoolDisplay').innerText; doc.setFontSize(22); doc.setTextColor(8, 33, 223); doc.text("IsCoolar", 14, 20); doc.setFontSize(14); doc.setTextColor(50, 50, 50); doc.text("Boletim Escolar", 14, 30); doc.setFontSize(11); doc.setTextColor(100, 100, 100); doc.text(`Escola: ${schoolLabel}`, 14, 40); doc.text(`Aluno: ${currentGradeStudentName}`, 14, 46); doc.text(`Turma: ${currentGradeStudentClass}`, 14, 52); doc.text(`Período: ${periodLabel}`, 14, 58); let bodyData = []; let gradesToPrint = currentStudentGrades; if(period !== 'ALL') gradesToPrint = gradesToPrint.filter(g => g.period === period); gradesToPrint.forEach(g => { bodyData.push([g.subject, g.period || '-', g.value.toFixed(1), currentStudentFaltas]); }); if(bodyData.length === 0) bodyData.push([{content: 'Nenhuma nota', colSpan: 4, styles: {halign: 'center'}}]); doc.autoTable({ startY: 65, head: [['Disciplina', 'Período', 'Nota', 'Faltas']], body: bodyData, theme: 'grid', headStyles: { fillColor: [8, 33, 223] } }); doc.save(`Boletim_${currentGradeStudentName}.pdf`); }
 
 // ==========================================
-// CHAMADA E RELATÓRIO DE FALTAS (COM ABAS)
+// CHAMADA E RELATÓRIO DE FALTAS 
 // ==========================================
 function switchAttendanceTab(tab) {
     document.getElementById('attendanceView-call').classList.add('hidden');
@@ -643,7 +644,7 @@ async function loadChat() {
 }
 
 // ==========================================
-// EXCLUSÃO GERAL DO SISTEMA E FIM DO SCRIPT
+// EXCLUSÃO GERAL DO SISTEMA 
 // ==========================================
 function openDeleteModal(id, type) { deletingEventId = id; deleteType = type; document.getElementById('deleteModal').classList.remove('hidden'); }
 function closeDeleteModal() { deletingEventId = null; deleteType = null; document.getElementById('deleteModal').classList.add('hidden'); }
